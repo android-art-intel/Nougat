@@ -1,0 +1,39 @@
+Date: Tue, 12 May 2015 13:16:20 -0700
+Subject: [PATCH] Add dex2oat dependency on vendor VM
+
+This patch makes it possible for dexpreopt to depend on vendor VM.
+
+---
+ core/dex_preopt_libart.mk | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/core/dex_preopt_libart.mk b/core/dex_preopt_libart.mk
+index 9410c3c..b469dc0 100644
+--- a/core/dex_preopt_libart.mk
++++ b/core/dex_preopt_libart.mk
+@@ -11,10 +11,22 @@ else
+ DEX2OAT := $(HOST_OUT_EXECUTABLES)/dex2oatd$(HOST_EXECUTABLE_SUFFIX)
+ endif
+ 
++
+ # Pass special classpath to skip uses library check.
+ # Should modify build system to pass used libraries properly later.
+ DEX2OAT_CLASSPATH := "&"
+ 
++# Allow vendor to deploy another ART VM with proprietary optimizations.
++art_path := art
++ifneq ($(VENDOR_ART_PATH),)
++  art_path := $(VENDOR_ART_PATH)
++endif
++
++# By default, do not run rerun dex2oat if the tool changes.
++# Comment out the | to force dex2oat to rerun on after all changes.
++DEX2OAT_DEPENDENCY := $(art_path)/runtime/oat.cc # dependency on oat version number
++DEX2OAT_DEPENDENCY += $(art_path)/runtime/image.cc # dependency on image version number
++DEX2OAT_DEPENDENCY += |
+ DEX2OAT_DEPENDENCY += $(DEX2OAT)
+ 
+ # Use the first preloaded-classes file in PRODUCT_COPY_FILES.
+-- 
+1.9.1
+

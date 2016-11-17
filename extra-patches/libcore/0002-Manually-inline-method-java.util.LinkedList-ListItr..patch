@@ -1,0 +1,90 @@
+Date: Tue, 26 Apr 2016 19:41:38 +0600
+Subject: [PATCH 2/5] Manually inline method
+ java.util.LinkedList$ListItr.checkForComodification()
+
+Frequent calls of the method java.util.LinkedList$ListItr.checkForComodification()
+cause significant performance degradation. The method cannot be inlined because of two reasons:
+- boot.oat is compiled with the debuggable flag set
+- the method can throw exception
+
+---
+ ojluni/src/main/java/java/util/LinkedList.java | 31 +++++++++++++++++++++-----
+ 1 file changed, 25 insertions(+), 6 deletions(-)
+
+diff --git a/ojluni/src/main/java/java/util/LinkedList.java b/ojluni/src/main/java/java/util/LinkedList.java
+index caae5f1..5615950 100755
+--- a/ojluni/src/main/java/java/util/LinkedList.java
++++ b/ojluni/src/main/java/java/util/LinkedList.java
+@@ -885,7 +885,10 @@ public class LinkedList<E>
+         }
+ 
+         public E next() {
+-            checkForComodification();
++            // inlined checkForComodification()
++            if (modCount != expectedModCount)
++                throw new ConcurrentModificationException();
++
+             if (!hasNext())
+                 throw new NoSuchElementException();
+ 
+@@ -900,7 +903,10 @@ public class LinkedList<E>
+         }
+ 
+         public E previous() {
+-            checkForComodification();
++            // inlined checkForComodification()
++            if (modCount != expectedModCount)
++                throw new ConcurrentModificationException();
++
+             if (!hasPrevious())
+                 throw new NoSuchElementException();
+ 
+@@ -918,7 +924,10 @@ public class LinkedList<E>
+         }
+ 
+         public void remove() {
+-            checkForComodification();
++            // inlined checkForComodification()
++            if (modCount != expectedModCount)
++                throw new ConcurrentModificationException();
++
+             if (lastReturned == null)
+                 throw new IllegalStateException();
+ 
+@@ -935,12 +944,19 @@ public class LinkedList<E>
+         public void set(E e) {
+             if (lastReturned == null)
+                 throw new IllegalStateException();
+-            checkForComodification();
++
++            // inlined checkForComodification()
++            if (modCount != expectedModCount)
++                throw new ConcurrentModificationException();
++
+             lastReturned.item = e;
+         }
+ 
+         public void add(E e) {
+-            checkForComodification();
++            // inlined checkForComodification()
++            if (modCount != expectedModCount)
++                throw new ConcurrentModificationException();
++
+             lastReturned = null;
+             if (next == null)
+                 linkLast(e);
+@@ -959,7 +975,10 @@ public class LinkedList<E>
+                 next = next.next;
+                 nextIndex++;
+             }
+-            checkForComodification();
++
++            // inlined checkForComodification()
++            if (modCount != expectedModCount)
++                throw new ConcurrentModificationException();
+         }
+ 
+         final void checkForComodification() {
+-- 
+1.9.1
+

@@ -1,0 +1,76 @@
+#!/usr/bin/perl
+#
+# Copyright (C) 2015 The Android Open Source Project
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Modified by Intel Corporation
+
+# Perform a binary search to narrow down a problem.  This script will repeatedly
+# invoke a script './execute test_number works_number fails_number'
+# where test_number is the current index being tested, and work_number and
+# fails_number are the last known working and failing numbers.  It is assumed that
+# large numbers will fail, and small numbers will succeed.  If this is not the case,
+# the 'execute' script must handle this internally.
+# The 'execute' script must return 0 for success, and anything else for failure.
+# A common use is to set an environment variable or parameter, and then invoke
+# a command.  It is also common to use 'grep' to look for known patterns to
+# determine success/failure.  Please ensure that there is no non-determism in the
+# command (such as multiple threads), or the result will not be meaningful.
+
+if (@ARGV < 1 || @ARGV > 2) {
+  print "Usage: $0 count [lower_bound]\n";
+  exit 1;
+}
+
+die "Can't execute file 'execute'" if ! -x "./execute";
+
+$top = $ARGV[0];
+$works = @ARGV == 2 ? $ARGV[1] : 0;
+$fails = $top;
+$i = $top;
+
+sub handler {
+  print "In handler";
+  exit 1;
+};
+
+$SIG{INT} = \&handler;
+$SIG{QUIT} = \&handler;
+
+# Loop until we find the boundary between working and failing.
+while (1) {
+  print "Testing range [${works}..${fails}]\n";
+  print "Running $i $works $fails\n";
+  system "./execute $i $works $fails";
+  $ret = $?;
+  # ensure the first one failed
+  die "initial run ($i) succeeded" if $i == $top && $ret == 0;
+  if ($ret == 0) {
+    # works: move up
+    $works = $i;
+    print "Success at $i\n";
+  } else {
+    # fails: move down
+    $fails = $i;
+    print "Failed at $i\n";
+  }
+  $new_i = int (($works + $fails) / 2);
+  if ($i == $new_i) {
+    # All done!
+    print "Highest working number: $works\n";
+    print "Lowest failing number: $fails\n";
+    exit 0;
+  }
+  $i = $new_i;
+}

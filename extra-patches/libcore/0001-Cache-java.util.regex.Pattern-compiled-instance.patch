@@ -1,0 +1,47 @@
+Date: Tue, 15 Mar 2016 16:44:55 +0600
+Subject: [PATCH 1/5] Cache java.util.regex.Pattern compiled instance
+
+The Pattern.compile method could be quite heavy operation and this patch
+avoids duplicate consecutive compilation of the same regex patterns.
+
+---
+ ojluni/src/main/java/java/util/regex/Pattern.java | 16 +++++++++++++++-
+ 1 file changed, 15 insertions(+), 1 deletion(-)
+
+diff --git a/ojluni/src/main/java/java/util/regex/Pattern.java b/ojluni/src/main/java/java/util/regex/Pattern.java
+index 5da11c8..adc8bab 100755
+--- a/ojluni/src/main/java/java/util/regex/Pattern.java
++++ b/ojluni/src/main/java/java/util/regex/Pattern.java
+@@ -932,6 +932,9 @@ public final class Pattern implements java.io.Serializable
+     private static final NativeAllocationRegistry registry = new NativeAllocationRegistry(
+             Pattern.class.getClassLoader(), getNativeFinalizer(), nativeSize());
+ 
++    private static String lastStr = ".";
++    private static Pattern lastPattern = Pattern.compile(lastStr, 0);
++    private static final Object syncObject = new Object();
+ 
+     /**
+      * Compiles the given regular expression into a pattern.  </p>
+@@ -943,7 +946,18 @@ public final class Pattern implements java.io.Serializable
+      *          If the expression's syntax is invalid
+      */
+     public static Pattern compile(String regex) {
+-        return new Pattern(regex, 0);
++        synchronized (syncObject) {
++            if (lastStr == regex && regex != null) {
++                return lastPattern;
++            }
++        }
++        Pattern curPattern = new Pattern(regex, 0);
++
++        synchronized (syncObject) {
++            lastStr = regex;
++            lastPattern = curPattern;
++        }
++        return curPattern;
+     }
+ 
+     /**
+-- 
+1.9.1
+

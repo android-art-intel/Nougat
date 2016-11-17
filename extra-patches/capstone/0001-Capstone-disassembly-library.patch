@@ -1,0 +1,210 @@
+Date: Tue, 21 Jun 2016 11:33:47 -0700
+Subject: [PATCH] Capstone disassembly library.
+
+Android.mk for Capstone Disassembler Library from
+https://github.com/aquynh/capstone.
+
+The commit checkpoint when the code was added to Android is
+16477206564745782854e0ec5c68defa02429dd8:
+"Python bindings: Changes to how structures are copied so that
+capstone works correctly in PyPy.".
+
+Since this is an external project, it may continue to grow/fix.
+If you need further enhancements, they may need to be manually
+applied in the future.
+
+---
+ Android.mk | 181 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 181 insertions(+)
+ create mode 100644 Android.mk
+
+diff --git a/Android.mk b/Android.mk
+new file mode 100644
+index 0000000..fe63d43
+--- /dev/null
++++ b/Android.mk
+@@ -0,0 +1,181 @@
++#
++# Copyright (C) 2016 The Android Open Source Project
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#      http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++#
++
++LOCAL_PATH := $(call my-dir)
++
++include $(art_path)/build/Android.common_build.mk
++
++LIBCAPSTONE_COMMON_SRC_FILES := \
++  cs.c \
++  MCInst.c \
++  MCInstrDesc.c \
++  MCRegisterInfo.c \
++  SStream.c \
++  utils.c
++
++LIBCAPSTONE_ARM_SUPPORT_SRC_FILES := \
++  arch/ARM/ARMDisassembler.c \
++  arch/ARM/ARMInstPrinter.c \
++  arch/ARM/ARMMapping.c \
++  arch/ARM/ARMModule.c
++
++LIBCAPSTONE_AARCH64_SUPPORT_SRC_FILES := \
++  arch/AArch64/AArch64BaseInfo.c \
++  arch/AArch64/AArch64Disassembler.c \
++  arch/AArch64/AArch64InstPrinter.c \
++  arch/AArch64/AArch64Mapping.c \
++  arch/AArch64/AArch64Module.c
++
++LIBCAPSTONE_MIPS_SUPPORT_SRC_FILES := \
++  arch/Mips/MipsDisassembler.c \
++  arch/Mips/MipsInstPrinter.c \
++  arch/Mips/MipsMapping.c \
++  arch/Mips/MipsModule.c
++
++LIBCAPSTONE_X86_SUPPORT_SRC_FILES := \
++  arch/X86/X86Disassembler.c \
++  arch/X86/X86DisassemblerDecoder.c \
++  arch/X86/X86IntelInstPrinter.c \
++  arch/X86/X86Mapping.c \
++  arch/X86/X86Module.c
++
++LIBCAPSTONE_SRC_FILES := \
++  $(LIBCAPSTONE_COMMON_SRC_FILES) \
++  $(LIBCAPSTONE_ARM_SUPPORT_SRC_FILES) \
++  $(LIBCAPSTONE_AARCH64_SUPPORT_SRC_FILES) \
++  $(LIBCAPSTONE_MIPS_SUPPORT_SRC_FILES) \
++  $(LIBCAPSTONE_X86_SUPPORT_SRC_FILES)
++
++LIBCAPSTONE_CFLAGS := \
++  -std=c99 \
++  -ggdb3 \
++  -Wall \
++  -Werror \
++  -Wextra \
++  -Wstrict-aliasing \
++  -fstrict-aliasing \
++  -Wunreachable-code \
++  -Wredundant-decls \
++  -Wunused \
++  -Wno-shadow \
++  -Wno-unused-parameter \
++  -Wno-sign-compare \
++  -fvisibility=protected \
++  -DCAPSTONE_USE_SYS_DYN_MEM \
++  -DCAPSTONE_X86_ATT_DISABLE \
++  -DCAPSTONE_HAS_ARM \
++  -DCAPSTONE_HAS_ARM64 \
++  -DCAPSTONE_HAS_MIPS \
++  -DCAPSTONE_HAS_X86
++
++# $(1): target or host
++# $(2): ndebug or debug
++define build-libcapstone
++  ifneq ($(1),target)
++    ifneq ($(1),host)
++      $$(error expected target or host for argument 1, received $(1))
++    endif
++  endif
++  ifneq ($(2),ndebug)
++    ifneq ($(2),debug)
++      $$(error expected ndebug or debug for argument 2, received $(2))
++    endif
++  endif
++
++  art_target_or_host := $(1)
++  art_ndebug_or_debug := $(2)
++
++  include $(CLEAR_VARS)
++  ifeq ($$(art_target_or_host),host)
++    LOCAL_IS_HOST_MODULE := true
++  endif
++  LOCAL_CPP_EXTENSION := $(ART_CPP_EXTENSION) .c
++  ifeq ($$(art_ndebug_or_debug),ndebug)
++    LOCAL_MODULE := libcapstone
++    ifeq ($$(art_target_or_host),target)
++      LOCAL_FDO_SUPPORT := true
++    endif
++  else # debug
++    LOCAL_MODULE := libcapstoned
++  endif
++
++  LOCAL_MODULE_TAGS := optional
++  LOCAL_MODULE_CLASS := SHARED_LIBRARIES
++
++  LOCAL_SRC_FILES := $$(LIBCAPSTONE_SRC_FILES)
++
++  LOCAL_CFLAGS := $$(LIBCAPSTONE_CFLAGS)
++  ifeq ($$(art_target_or_host),target)
++    $(call set-target-local-clang-vars)
++  else # host
++    LOCAL_CLANG := $(ART_HOST_CLANG)
++    LOCAL_CFLAGS +=
++    LOCAL_LDLIBS := $(ART_HOST_LDLIBS)
++    ifeq ($$(art_ndebug_or_debug),debug)
++      LOCAL_CFLAGS += $(ART_HOST_DEBUG_CFLAGS)
++    else
++      LOCAL_CFLAGS += $(ART_HOST_NON_DEBUG_CFLAGS)
++    endif
++  endif
++
++  LOCAL_C_INCLUDES += $(art_path)/runtime $(LOCAL_PATH) $(LOCAL_PATH)/include
++
++  ifeq ($$(art_target_or_host),host)
++    LOCAL_LDLIBS += -lpthread
++  endif
++  LOCAL_ADDITIONAL_DEPENDENCIES := $(art_path)/build/Android.common_build.mk
++  LOCAL_ADDITIONAL_DEPENDENCIES += $(LOCAL_PATH)/Android.mk
++
++  LOCAL_NATIVE_COVERAGE := $(ART_COVERAGE)
++
++  ifeq ($$(art_target_or_host),target)
++    # For atrace.
++    LOCAL_SHARED_LIBRARIES += libcutils
++    include $(BUILD_SHARED_LIBRARY)
++  else # host
++    LOCAL_MULTILIB := both
++    include $(BUILD_HOST_SHARED_LIBRARY)
++  endif
++
++  ifeq ($$(art_target_or_host),target)
++    ifeq ($$(art_ndebug_or_debug),debug)
++      $(TARGET_OUT_EXECUTABLES)/capstoned: $$(LOCAL_INSTALLED_MODULE)
++    else
++      $(TARGET_OUT_EXECUTABLES)/capstone: $$(LOCAL_INSTALLED_MODULE)
++    endif
++  else # host
++    ifeq ($$(art_ndebug_or_debug),debug)
++      $(HOST_OUT_EXECUTABLES)/capstoned: $$(LOCAL_INSTALLED_MODULE)
++    else
++      $(HOST_OUT_EXECUTABLES)/capstone: $$(LOCAL_INSTALLED_MODULE)
++    endif
++  endif
++
++endef
++
++# We always build capstone and dependencies, even if the host build is otherwise disabled, since they are used to cross compile for the target.
++ifeq ($(ART_BUILD_HOST_NDEBUG),true)
++  $(eval $(call build-libcapstone,host,ndebug))
++endif
++ifeq ($(ART_BUILD_HOST_DEBUG),true)
++  $(eval $(call build-libcapstone,host,debug))
++endif
++ifeq ($(ART_BUILD_TARGET_NDEBUG),true)
++  $(eval $(call build-libcapstone,target,ndebug))
++endif
++ifeq ($(ART_BUILD_TARGET_DEBUG),true)
++  $(eval $(call build-libcapstone,target,debug))
++endif
+-- 
+1.9.1
+
