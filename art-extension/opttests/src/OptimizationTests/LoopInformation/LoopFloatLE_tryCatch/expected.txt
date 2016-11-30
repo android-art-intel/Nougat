@@ -1,0 +1,9 @@
+LoopFloatLE_tryCatch.test1 result: -1876592500
+LoopFloatLE_tryCatch.test2 result: 311481054
+LoopFloatLE_tryCatch.test3 result: 531492577
+LoopFloatLE_tryCatch.test4 result: 821943538
+LoopFloatLE_tryCatch.test5 result: 1315892839
+LoopFloatLE_tryCatch.test6 result: 1315858023
+LoopFloatLE_tryCatch.test7 result: 1315892975
+LoopFloatLE_tryCatch.test8 result: 320165446
+LoopFloatLE_tryCatch.test9 result: -1911581460

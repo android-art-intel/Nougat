@@ -1,0 +1,9 @@
+LoopFloatLT.test1 result: -1876408191
+LoopFloatLT.test2 result: 311481054
+LoopFloatLT.test3 result: 531455137
+LoopFloatLT.test4 result: 821915521
+LoopFloatLT.test5 result: 1315892839
+LoopFloatLT.test6 result: 1315858023
+LoopFloatLT.test7 result: 1315892975
+LoopFloatLT.test8 result: 320798657
+LoopFloatLT.test9 result: 227184987

@@ -1,0 +1,4 @@
+Test Volatile_01; Subtest test_01; Result: 5.0095E7
+Test Volatile_01; Subtest test_02; Result: 6.6696733034E10
+Test Volatile_01; Subtest test_03; Result: 0.0
+Test Volatile_01; Subtest test_04; Result: 0.0

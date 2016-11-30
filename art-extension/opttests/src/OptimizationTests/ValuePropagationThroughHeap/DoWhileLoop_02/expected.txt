@@ -1,0 +1,3 @@
+Test DoWhileLoop_02; Subtest test1; Result: 0
+Test DoWhileLoop_02; Subtest test2; Result: 1110.999937500625
+Test DoWhileLoop_02; Subtest test3; Result: 4

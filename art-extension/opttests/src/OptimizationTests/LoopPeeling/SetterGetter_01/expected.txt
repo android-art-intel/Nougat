@@ -1,0 +1,11 @@
+Test SetterGetter_01; Subtest test_00; Result: 33.0
+Test SetterGetter_01; Subtest test_00a; Result: 1.49985033E8
+Test SetterGetter_01; Subtest test_00b; Result: 1.4998500000001234E8
+Test SetterGetter_01; Subtest test_01; Result: 5.0425E7
+Test SetterGetter_01; Subtest test_02; Result: 3.66817024187E11
+Test SetterGetter_01; Subtest test_03; Result: 1.4998522116226763E8
+Test SetterGetter_01; Subtest test_04; Result: 0.0
+Test SetterGetter_01; Subtest test_05; Result: 738486.764787627
+Test SetterGetter_01; Subtest test_06; Result: -8264.565898945752
+Test SetterGetter_01; Subtest test_07; Result: 34.0
+Test SetterGetter_01; Subtest test_08; Result: 12

@@ -1,0 +1,8 @@
+Test ShortLoop_01; Subtest test_01; Result: 1.234500012345E-5
+Test ShortLoop_01; Subtest test_02; Result: 1.234500012345E-5
+Test ShortLoop_01; Subtest test_03; Result: 
+Test ShortLoop_01; Subtest test_04; Result: abcd
+Test ShortLoop_01; Subtest test_05; Result: 8.187762407965459E8
+Test ShortLoop_01; Subtest test_06; Result: 2600.0
+Test ShortLoop_01; Subtest test_07; Result: 34.0
+Test ShortLoop_01; Subtest test_08; Result: 12

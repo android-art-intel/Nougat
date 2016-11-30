@@ -1,0 +1,32 @@
+LoopInformation Test Design
+
+CAR-4199: Refactor bound info, loop info & add verbose for them
+
+Tests for LoopInformation validation should cover basic positive cases (as well as optimization limitations and corner cases. 
+Post-processing script (validate the loop information) relies on output printed when "-Xcompiler-option --print-all-passes" 
+or "-Xcompiler-option --print-passes=find_ivs" option is specified
+
+Recommendation on testing focus
+* The number of iterations for all loops is calculated correctly.
+* For FP loops, the best way to have a countable loop is to use steps like 1/2f, 1/4f, 1/8f etc.
+  Bad values are 0.1, 0.01, 0.001 etc, because they are not representable in binary grid without precision loss.
+* All comparison conditions (LT, LE, GT, GE) should be covered.
+* Focus on loops with known number of iterations. There should be at least 1 test for each of infinite values, NaNs and INT MAX/MIN values.
+  Note that Peeling and Form Bottom Loops may change borders due to hoisting some instructions out of block. Borders for them should be checked accurately.
+
+-----------------------------------------------------------------------------------------------
+Regression test
+CAR-3170: Simple FP loop crashes debug TLE
+
+public class Main {
+  public static void main(String[] args) {
+    int i = 2;
+    i = 0;
+    for (float f = 5f; f <= 10f; f += 1f) {
+      i += 4;
+    }
+    System.out.println(i / 4);
+  }
+}
+
+dex2oatd F 26453 26453 vendor/intel/art-extension/compiler/optimizing/extensions/passes/trivial_loop_evaluator.cc:756] Check failed: current_iter <= loop_iterations (current_iter=7, loop_iterations=6)

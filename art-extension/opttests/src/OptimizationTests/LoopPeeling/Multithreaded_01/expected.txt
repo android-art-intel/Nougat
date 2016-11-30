@@ -1,0 +1,5 @@
+Test Multithreaded_01; Subtest test_01; Result: 19.0
+Test Multithreaded_01; Subtest test_02; Result: 1
+Test Multithreaded_01; Subtest test_03; Result: 2000000.0
+Expected uncaught exception: java.lang.ArrayIndexOutOfBoundsException: length=10; index=10
+Test Multithreaded_01; Subtest test_04; Result: 10.0

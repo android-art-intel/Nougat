@@ -1,0 +1,21 @@
+Basicc Block Simplifier Test Design Document (FOR N VERSION)
+
+Tests for BB_simplifier optimization should cover basic cases when empty If-Else cab appear.
+Post-processing script (checking that optimization is (or is not) applied) relies on output printed when "-Xcompiler-option -j1 -Xcompiler-option --print-passes=bb_simplifier" option is specified
+
+The following cases are covered:
+
+- Standard set of tests
+    * Simple If Else cases
+    * Nested Ifs cases
+    * Nested If Elses cases
+    * Sequence of Ifs
+    * Sequence of If Elses
+    * Sequences of IFs in different loops
+    * Sequence of IFs in nested loops
+
+- Standard set of tests in BEFORE TRY/CATCH block
+- Standard set of tests in TRY block
+- Standard set of tests in CATCH block
+- Standard set of tests in FINALLY block
+- Standard set of tests in AFTER TRY/CATCH block

@@ -1,0 +1,11 @@
+Test LoopPeeling_SetterGetter_01; Subtest test_00; Result: 33.0
+Test LoopPeeling_SetterGetter_01; Subtest test_00a; Result: 1.054913729E9
+Test LoopPeeling_SetterGetter_01; Subtest test_00b; Result: 1.4999985E12
+Test LoopPeeling_SetterGetter_01; Subtest test_01; Result: 1.826293664E9
+Test LoopPeeling_SetterGetter_01; Subtest test_02; Result: 5.052001256123E12
+Test LoopPeeling_SetterGetter_01; Subtest test_03; Result: 1.0549139171622677E9
+Test LoopPeeling_SetterGetter_01; Subtest test_04; Result: 0.0
+Test LoopPeeling_SetterGetter_01; Subtest test_05; Result: 2.857128722713886E8
+Test LoopPeeling_SetterGetter_01; Subtest test_06; Result: -12677.187881956275
+Test LoopPeeling_SetterGetter_01; Subtest test_07; Result: -10992.824816569277
+Test LoopPeeling_SetterGetter_01; Subtest test_08; Result: 11

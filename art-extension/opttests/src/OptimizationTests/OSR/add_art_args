@@ -1,0 +1,1 @@
+-Xcompiler-option --print-passes=osr_graph_rebuilder  

@@ -1,0 +1,6 @@
+Exception when dividing 4 by 0
+Test Exceptions_01; Subtest test_00; Result: 25.0
+Test Exceptions_01; Subtest test_01; Result: java.lang.reflect.InvocationTargetException, caused by: java.lang.ArithmeticException: divide by zero
+Test Exceptions_01; Subtest test_01a; Result: java.lang.reflect.InvocationTargetException, caused by: java.lang.ArithmeticException: divide by zero
+Test Exceptions_01; Subtest test_02; Result: java.lang.reflect.InvocationTargetException, caused by: java.lang.ArrayIndexOutOfBoundsException: length=10; index=10
+Test Exceptions_01; Subtest test_03; Result: -50.012345678

@@ -1,0 +1,2 @@
+result: Infinity
+Test completed

@@ -1,0 +1,65 @@
+#!/bin/bash
+#
+# Copyright (C) 2016 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+logcat=$1
+
+output_dir=$(dirname "$logcat")
+packagename=$(basename `cd $packagedir ; pwd`)
+metapackagename=$(dirname `cd $packagedir ; pwd`)
+testname=${PWD##*/}
+packagename=${PWD%%/$testname}
+packagename=${packagename##*/}
+metapackagename=${PWD%%/$packagename/$testname}
+metapackagename=${metapackagename##*/}
+test_methods=${test_methods:-"test1 test2 test3 test4 test5"}
+status=0
+
+echo "Test: $metapackagename.$packagename.$testname"
+
+function check_method_loop() {
+    local method=$1
+    local test="$metapackagename.$packagename.$testname"
+    local test_sig="int $metapackagename.$packagename.$testname\.Main\.${method}("
+    local method_log="$output_dir/method-${method}.log"
+    local method_expected="$(pwd)/expected-method-${method}.log"
+    grep -q "Begin $test_sig" "$logcat" || return
+    echo "Test case: $test.$method"
+    cat "$logcat" | sed -n "/Begin $test_sig/,/End $test_sig/p" | grep "dump_loop: " | sed "s/.*dump_loop: /dump_loop: /"| grep -v ==== | sed "s/IV:.*wide/IV: wide/" | sed "/dump_loop: The loop has/q" > "$method_log"
+    if diff --strip-trailing-cr -u "$method_expected" "$method_log"
+    then
+        echo "OK: loop info is expected"
+        echo
+    else
+        echo " ^^^ loop info is NOT expected ^^^ "
+        echo
+        status=1
+    fi
+}
+
+for ((i = 1; i <= 100; i++))
+do
+    check_method_loop test$i
+done
+
+if [[ $status == 0 ]]
+then
+    echo "Post-processing PASSED"
+else
+    echo "Post-processing FAILED"
+fi
+
+exit $status

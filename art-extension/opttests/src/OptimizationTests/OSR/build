@@ -1,0 +1,15 @@
+#/bin/bash
+
+# the script accepts the following args:
+pckgname=$1
+testname=$2
+
+
+#echo "pcgdir: ${pcgdir}"
+#echo "progdir: $progdir"
+
+source ${progdir}/etc/default-build
+
+cp ${progdir}/src/${TESTSUITE_NAME}/${pckgname}/postproc_common_* ${DEPLOY_DIR}/bin/${TESTSUITE_NAME}/${pckgname}/
+
+

@@ -1,0 +1,11 @@
+m1() from class B
+m1() from class B
+m1() from class B
+m1() from class B
+m1() from class B
+m1() from class B
+m1() from class B
+m1() from class B
+m1() from class B
+m1() from class B
+b.test1() = 2560

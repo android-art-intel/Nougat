@@ -1,0 +1,5 @@
+LoopIntLE.test1 result: 878082202
+LoopIntLE.test2 result: 320
+LoopIntLE.test3 result: 40961
+LoopIntLE.test4 result: 878082196
+LoopIntLE.test5 result: 451395824

@@ -1,0 +1,1 @@
+Important: if you rebuild ASM files from C source, please edit .s files manually and insert "lock" prefix to "xchgl" instruction

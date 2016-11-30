@@ -1,0 +1,2 @@
+Test InvokeVirtual_01; Subtest test; Result: 1
+Test InvokeVirtual_01; Subtest testWithGCStress; Result: 1

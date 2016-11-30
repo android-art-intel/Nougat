@@ -1,0 +1,9 @@
+Test TryCatch_01; Subtest test_04; Result: 1
+Test TryCatch_01; Subtest test_05; Result: -1880304274
+Test TryCatch_01; Subtest test_06; Result: -1880785789
+Test TryCatch_01; Subtest test_07; Result: -1880785789
+Test TryCatch_01; Subtest test_08; Result: 0
+Test TryCatch_01; Subtest test_09; Result: 0
+Test TryCatch_01; Subtest test_10; Result: 111
+Test TryCatch_01; Subtest test_11; Result: 0
+Test TryCatch_01; Subtest test_12; Result: 0

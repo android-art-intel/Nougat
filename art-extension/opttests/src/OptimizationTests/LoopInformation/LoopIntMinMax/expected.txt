@@ -1,0 +1,4 @@
+LoopIntMinMax.test1 result: -410407986
+LoopIntMinMax.test2 result: -1
+LoopIntMinMax.test3 result: 124076833
+LoopIntMinMax.test4 result: -1

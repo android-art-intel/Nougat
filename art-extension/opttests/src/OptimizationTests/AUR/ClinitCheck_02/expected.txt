@@ -1,0 +1,3 @@
+class java.lang.ExceptionInInitializerError
+OptimizationTests.AUR.ClinitCheck_02.Main.test(Main.java:65)
+Test ClinitCheck_02; Subtest testWithGCStress; Result: class java.lang.NoClassDefFoundError

@@ -1,0 +1,36 @@
+m() from class B
+m() from class B
+m() from class B
+m() from class B
+m() from class B
+m() from class B
+m() from class B
+m() from class B
+m() from class B
+m() from class B
+m() from class B
+b.test() = 13574
+m() from class C
+m() from class C
+m() from class C
+m() from class C
+m() from class C
+m() from class C
+m() from class C
+m() from class C
+m() from class C
+m() from class C
+m() from class C
+c.test() = 62458
+m() from class D
+m() from class D
+m() from class D
+m() from class D
+m() from class D
+m() from class D
+m() from class D
+m() from class D
+m() from class D
+m() from class D
+m() from class D
+d.test() = 108636

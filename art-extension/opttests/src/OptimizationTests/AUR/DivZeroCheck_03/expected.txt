@@ -1,0 +1,2 @@
+Test DivZeroCheck_03; Subtest test; Result: 5
+Test DivZeroCheck_03; Subtest testWithGCStress; Result: 5

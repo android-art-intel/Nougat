@@ -1,0 +1,5 @@
+LoopIntGT100_tryCatch.test1 result: 170
+LoopIntGT100_tryCatch.test2 result: 330
+LoopIntGT100_tryCatch.test3 result: 641
+LoopIntGT100_tryCatch.test4 result: 4160
+LoopIntGT100_tryCatch.test5 result: 719552596

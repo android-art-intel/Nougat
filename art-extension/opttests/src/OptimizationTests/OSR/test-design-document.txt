@@ -1,0 +1,18 @@
+This test package is intended to test OSR (on stack replacement) feature for supported optimizations.
+
+If a method executes a loop for too long time in interpreter, JIT assumes that we will possibly not leave the method and invoke it again to enter JITed code. In this case it takes a decision to compile the on-stack replacement (OSR) version of the code. OSR code assumes that it has entry points in all loops headers. Only few optimizations are allowed in case OSR occurs. This test package is supposed to cover the following optimizations:
+
++ Devirtualization  
++ LoadHoistStoreSink
+? ShortLeafMethodsInlining
++ FormBottomLoops   
+? Inlining          
+ LoopPeeling 
+? ShortMethodsInliningNonVirtualInvokes 
+
+At the moment only LoadHoistStoreSink and FormBottomLoops are covered.
+
+Each test is checked for functional correctness (correct calculation) + post-processing script checks that optimization occurs and OSR occurs (checks for: osr=true, Jumping to <method>, Done running OSR code for <method>).
+
+
+

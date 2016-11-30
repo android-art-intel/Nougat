@@ -1,0 +1,1 @@
+-Xcompiler-option --debuggable -Xcompiler-option -j1 -Xcompiler-option --print-passes=aur

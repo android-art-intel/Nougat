@@ -1,0 +1,2 @@
+Regr01.test1 result: 31
+Regr01.test2 result: 31

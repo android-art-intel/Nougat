@@ -1,0 +1,2 @@
+Test CombinedTest; Subtest testDo; Result: 4
+Test CombinedTest; Subtest testFor; Result: 4

@@ -1,0 +1,11 @@
+Loop Peeling optimization tests design document
+
+These tests provide basic coverage for Loop Peeling optimization for N.
+
+1. These tests are based on QA document for Loop Peeling for N: https://sp2010.amr.ith.intel.com/sites/SSG-703/VM/Shared%20Documents/Documents/QA%20Documents/N/N_Peeling_QA.docx
+2. These tests cover the following loop peeling candidates instructions: getters, class or string loading, simple throwers (null check, bound check, div zero check), and invokes that are either pure or intrinsics
+3. Different loop types are covered: for, while, do-while, count-down, float point iterator, increment different than 1, nested loops
+4. Branching scenarios are covered: branching doesn't prevent peeling as long as it doesn't create loop phis merges
+5. Several negative scenarios are included in Negative_01 test
+6. Simple multi-threaded scenarios are covered
+7. Some corner cases are covered: very short loops, exceptions thrown in the loop to be peeled

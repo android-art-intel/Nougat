@@ -1,0 +1,5 @@
+LoopIntLT_tryCatch.test1 result: 591751049
+LoopIntLT_tryCatch.test2 result: 320
+LoopIntLT_tryCatch.test3 result: 640
+LoopIntLT_tryCatch.test4 result: 591751043
+LoopIntLT_tryCatch.test5 result: -656982833

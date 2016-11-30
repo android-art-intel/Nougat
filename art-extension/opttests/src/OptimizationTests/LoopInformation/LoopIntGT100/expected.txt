@@ -1,0 +1,5 @@
+LoopIntGT100.test1 result: 170
+LoopIntGT100.test2 result: 330
+LoopIntGT100.test3 result: 641
+LoopIntGT100.test4 result: 4160
+LoopIntGT100.test5 result: 719552596

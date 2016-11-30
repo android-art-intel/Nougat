@@ -1,0 +1,5 @@
+LoopIntGE.test1 result: 1985229328
+LoopIntGE.test2 result: -1975416800
+LoopIntGE.test3 result: 641
+LoopIntGE.test4 result: -878082196
+LoopIntGE.test5 result: -451395824

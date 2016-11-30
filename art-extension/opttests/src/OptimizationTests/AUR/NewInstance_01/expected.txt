@@ -1,0 +1,2 @@
+Test NewInstance_01; Subtest test; Result: 4460
+Test NewInstance_01; Subtest testWithGCStress; Result: 4460

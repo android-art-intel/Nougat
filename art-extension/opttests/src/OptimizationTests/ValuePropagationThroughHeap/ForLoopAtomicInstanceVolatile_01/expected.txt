@@ -1,0 +1,12 @@
+getGenericReturnType() = int
+Test ForLoopAtomicInstanceVolatile_01; Subtest test1; Result: 3
+getGenericReturnType() = double
+Test ForLoopAtomicInstanceVolatile_01; Subtest test2; Result: 0.6172799999999999
+getGenericReturnType() = short
+Test ForLoopAtomicInstanceVolatile_01; Subtest test3; Result: 17967
+getGenericReturnType() = char
+Test ForLoopAtomicInstanceVolatile_01; Subtest test4; Result: \ubaf5
+getGenericReturnType() = byte
+Test ForLoopAtomicInstanceVolatile_01; Subtest test5; Result: -111
+getGenericReturnType() = boolean
+Test ForLoopAtomicInstanceVolatile_01; Subtest test6; Result: false

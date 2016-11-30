@@ -1,0 +1,98 @@
+link to the QA Document: https://sp2010.amr.ith.intel.com/sites/SSG-703/VM/Shared%20Documents/Documents/QA%20Documents/non-temps.docx
+
+Sometimes when a loop is doing only stores it's possible to optimize it by using movnti instructions and sink a memory barrier instruction at the end of the loop.
+It's a common situation when a loop is very simple and straightforward and used only to initialize arrays.
+Using the non-temporal movnti version provides better performance than using normal mov instructions.
+So, if the loop passes all the conditions listed below it will be requested that the store become non-temporal.
+
+Listed below are the conditions and limitations for the optimization to be applied:
+- There must be no loads in the loop
+- The loop must be the inner loop
+- The loop cannot through an exception
+- The increment of the loop must not be different than 1
+- The loop must have constant bounds
+- The loop must have a known number of iterations
+- The loop must not have a floating point induction variable
+- We only do it for loops with at least 131072 iterations
+- This bound was calculated as an estimation for having cache overfill and thus the moves can be streaming.
+- When testing, the number of iterations this optimization applies will have a margin of error of a couple of iterations because iteration peeling (pre and post loop) may be done.
+- The store accesses need to use the induction variable as the index
+- The optimization only applies itself to array stores.
+- Only applies to long, object, or int type of array accesses
+
+
+
+
+Almost all the tests in the package are variations of the following example:
+	public static int foo(int[] tab, int n) {
+		int m = 0x40000;
+		for (int i = 0; i < m; i++) {
+			tab[i] = i;
+		}
+		return n;
+	}
+
+
+
+
+"detailed" description of the test cases:
+
+* accessing array within loop:
+	* AccessArrayElements(Int|Long)_001 ... AccessArrayElements(Int|Long)_003
+
+* accessing instance field within loop:
+	* AccessInstanceField(Int|Long)_001
+
+* accessing static field within loop:
+	* AccessStaticField(Int|Long)_001
+
+* violating "loop can't throw exception" condition:
+	* CanThrowException(Int|Long)_001 ... CanThrowException(Int|Long)_003
+
+* checking if the array is stored in the same way with and without movnti instructions
+	* CheckValues(Int|Long)_001
+	
+* just checking that DoWhile Loop was optimized
+	* DoWhileLoop(Int|Long)_001
+
+* just checking that EnhancedFor Loop was optimized
+	* EnhancedForLoop(Int|Long)_001
+
+* breaking no float point induction variable limitation
+	* FloatInductionVariable(Int|Long)_001
+
+* breaking no function invocations limitation
+	* FunctionInvocation(Int|Long)_001 ... FunctionInvocation(Int|Long)_003
+
+* breaking bounds limitation (constant bounds, threshold, ...) 
+	* LoopBounds(Int|Long)_001 ... LoopBounds(Int|Long)_005
+
+* optimizing Multi Dimensional Arrays
+	* MultiDimensionalArrayForLoop(Int|Long)_001 ... MultiDimensionalArrayForLoop(Int|Long)_002
+
+* optimizing Multiple Arrays/loops
+	* MultipleArraysStores(Int|Long)_001 ... MultipleArraysStores(Int|Long)_005
+
+* checking how it works with Nested Loops
+	* NestedLoop(Int|Long)_001 ... NestedLoop(Int|Long)_005
+
+* breaking single basic block limitation (there was a following rule: "The loop must be a single basic block loop (thus no if-else/function invocation/etc)")
+	* NonSinlgeBasicBlock(Int|Long)_001 ... NonSinlgeBasicBlock(Int|Long)_003
+
+* breaking "array access index must be induction variable" limitation
+	* NotInductionVariableAsIndex(Int|Long)_001
+
+* breaking "The increment of the loop must not be different than 1" limitation
+	* NotSimpleCountUpLoop(Int|Long)_001 ... NotSimpleCountUpLoop(Int|Long)_002
+
+* just checking that Simple For Loop was optimized correctly (only int, long and null object types could be optimized)
+	* SimpleForLoop(Boolean|Byte|Char|Double|Float|Long|Object|Short)_001 ... SimpleForLoop(Boolean|Byte|Char|Double|Float|Long|Object|Short)_003
+
+* just checking that WhileDo Loop was optimized
+	* WhileDoLoop(Int|Long|Object)_001 ... WhileDoLoop(Int|Long|Object)_002
+	
+* optimizing non-single block loops
+	* ForCondition(Int|Long)_001 ... ForCondition(Int|Long)_004
+	
+* using volatile variable for store
+	* Volatile(Int|Long)_001

@@ -1,0 +1,7 @@
+dump_loop: Depth = 0
+dump_loop: The loop is bottom tested
+dump_loop: Bound information:
+dump_loop: IV: wide: 0, FP: 0, loop increment: 1
+dump_loop: The loop is a simple count up loop:
+dump_loop: 	for (i = 0; i < 2; i += 1)
+dump_loop: The loop has 2 iterations

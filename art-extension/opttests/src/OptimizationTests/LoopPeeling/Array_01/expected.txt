@@ -1,0 +1,10 @@
+Test Array_01; Subtest test_01; Result: 40
+Test Array_01; Subtest test_01a; Result: 0
+Test Array_01; Subtest test_01b; Result: 24
+Test Array_01; Subtest test_02; Result: 11.0
+OptimizationTests.LoopPeeling.shared.Cls2_ext
+Test Array_01; Subtest test_03; Result: 660000
+Test Array_01; Subtest test_05; Result: 1.12345
+Test Array_01; Subtest test_06; Result: 3102
+Test Array_01; Subtest test_07; Result: 2147387296
+Test Array_01; Subtest test_08; Result: 11

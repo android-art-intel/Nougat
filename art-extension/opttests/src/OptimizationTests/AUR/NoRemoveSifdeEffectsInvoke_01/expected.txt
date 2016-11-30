@@ -1,0 +1,2 @@
+Test NoRemoveSifdeEffectsInvoke_01; Subtest test; Result: 56242505
+Test NoRemoveSifdeEffectsInvoke_01; Subtest testWithGCStress; Result: 56242505

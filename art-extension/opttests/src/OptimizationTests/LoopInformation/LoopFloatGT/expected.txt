@@ -1,0 +1,9 @@
+LoopFloatGT.test1 result: 315091916
+LoopFloatGT.test2 result: -1835964264
+LoopFloatGT.test3 result: 524819241
+LoopFloatGT.test4 result: 785400919
+LoopFloatGT.test5 result: 599808464
+LoopFloatGT.test6 result: 363318469
+LoopFloatGT.test7 result: 271211865
+LoopFloatGT.test8 result: 250424412
+LoopFloatGT.test9 result: 223883535

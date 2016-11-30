@@ -1,0 +1,2 @@
+m1() from class B
+b.test1() = 256

@@ -1,0 +1,2 @@
+Test RemovePureInvoke_03; Subtest test; Result: 56242506
+Test RemovePureInvoke_03; Subtest testWithGCStress; Result: 56242506

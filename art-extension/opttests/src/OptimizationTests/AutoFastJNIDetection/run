@@ -1,0 +1,112 @@
+#!/bin/bash
+#
+# Copyright (C) 2016 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+
+# Custom run script
+
+# the script accepts the following args:
+pckgname=$1
+testname=$2
+if [ "$HOST_MODE" = "on" ]; then
+    NATIVE_LIBS_DIR=${RESULTS_DIR}/data
+    mkdir -p ${RESULTS_DIR}/data
+else 
+    NATIVE_LIBS_DIR=/data
+fi 
+
+
+
+vm_args_test="$3 -Djava.library.path=${NATIVE_LIBS_DIR}"
+pass_args_to_test="$4"
+
+pcgdir=`echo "$(cd $(dirname $0); pwd)/../"`
+testdir=${pcgdir}/${testname}
+
+
+function push_nativelib() {
+libname=$1
+if [ "$HOST_MODE" = "off" ]; then
+    if adb shell getprop ro.product.cpu.abi | grep "x86_64"  > /dev/null 2>&1; then
+        adb push "${testdir}/x86_64/${libname}" "${NATIVE_LIBS_DIR}"   >> ${testlog}.additional 2>&1
+    elif adb shell getprop ro.product.cpu.abi | grep "x86"  > /dev/null 2>&1; then
+        adb push "${testdir}/x86/${libname}" "${NATIVE_LIBS_DIR}"   >> ${testlog}.additional 2>&1
+    elif adb shell getprop ro.product.cpu.abi | grep "arm64-v8a"  > /dev/null 2>&1; then
+        adb push "${testdir}/arm64/${libname}" "${NATIVE_LIBS_DIR}"   >> ${testlog}.additional 2>&1
+    elif adb shell getprop ro.product.cpu.abi | grep "armeabi-v7a"  > /dev/null 2>&1; then
+        adb push "${testdir}/arm/${libname}" "${NATIVE_LIBS_DIR}"   >> ${testlog}.additional 2>&1
+    fi
+else # HOST_MODE=on
+        if [ "$VM_RUNTIME" = "ART64" ]; then
+            cp "${testdir}/host_x86_64/${libname}" "${NATIVE_LIBS_DIR}"   >> ${testlog}.additional 2>&1
+        elif [ "$VM_RUNTIME" = "ART" ]; then
+            cp "${testdir}/host_x86/${libname}" "${NATIVE_LIBS_DIR}"   >> ${testlog}.additional 2>&1
+        else
+            echo "WARNING: unknown architecture on host: `arch`, falling back to x86_64"
+            cp "${testdir}/host_x86_64/${libname}" "${NATIVE_LIBS_DIR}"   >> ${testlog}.additional 2>&1
+        fi
+fi
+}
+
+function pullAsm() {
+    ASM_FILE="JniTest"
+    if [ "$HOST_MODE" = "off" ]; then
+            if adb shell getprop ro.product.cpu.abi | grep "x86_64"  > /dev/null 2>&1; then
+                ASM_FILE=${testdir}/${ASM_FILE}_x86_64.s
+            elif adb shell getprop ro.product.cpu.abi | grep "x86"  > /dev/null 2>&1; then
+                ASM_FILE=${testdir}/${ASM_FILE}_x86.s
+            elif adb shell getprop ro.product.cpu.abi | grep "arm64-v8a"  > /dev/null 2>&1; then
+                ASM_FILE=${testdir}/${ASM_FILE}_arm64.s
+            elif adb shell getprop ro.product.cpu.abi | grep "armeabi-v7a"  > /dev/null 2>&1; then
+                ASM_FILE=${testdir}/${ASM_FILE}_arm.s
+            fi
+     else # HOST_MODE=on
+           if [ "$VM_RUNTIME" = "ART64" ]; then
+               ASM_FILE=${testdir}/${ASM_FILE}_host_x86_64.s
+            elif [ "$VM_RUNTIME" = "ART" ]; then
+                ASM_FILE=${testdir}/${ASM_FILE}_host_x86.s
+            else
+               echo "WARNING: unknown architecture on host: `arch`, falling back to x86_64" >> ${testlog}
+               ASM_FILE=${testdir}/${ASM_FILE}_host_x86_64.s
+            fi
+    fi
+    if [ -f "${ASM_FILE}" ] ; then
+        cp $ASM_FILE ${test_results}/
+    else 
+        echo "WARNING: no asm file ${ASM_FILE} found" >> ${testlog}
+    fi
+
+}
+
+
+
+echo "Pushing custom binaries for ${testname}"  >> ${testlog}.additional 2>&1
+push_nativelib "libJniTest.so"
+
+export ART_AUTOFAST_DISABLE=false
+export ART_AUTOFAST_DEBUG=true
+
+if [ "$HOST_MODE" = "off" ]; then
+    adb shell stop
+    adb shell setprop persist.dalvik.autofast.disable "false"
+    adb shell setprop persist.dalvik.autofast.debug "true"
+    adb shell start
+    adb shell sleep 30
+    source ${progdir}/etc/push-and-run-test-jar "${pckgname}" "${testname}" "${vm_args_test}" "${pass_args_to_test}"
+else 
+    source ${progdir}/etc/host-run-test-jar "${pckgname}" "${testname}" "${vm_args_test}" "${pass_args_to_test}"
+fi
+pullAsm

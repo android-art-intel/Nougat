@@ -1,0 +1,12 @@
+getGenericReturnType() = int
+Test EnhLoopAtomicInstance_01; Subtest test1; Result: 617280
+getGenericReturnType() = double
+Test EnhLoopAtomicInstance_01; Subtest test2; Result: 0.6172799999999999
+getGenericReturnType() = short
+Test EnhLoopAtomicInstance_01; Subtest test3; Result: -18295
+getGenericReturnType() = char
+Test EnhLoopAtomicInstance_01; Subtest test4; Result: \u0467
+getGenericReturnType() = byte
+Test EnhLoopAtomicInstance_01; Subtest test5; Result: 121
+getGenericReturnType() = boolean
+Test EnhLoopAtomicInstance_01; Subtest test6; Result: false

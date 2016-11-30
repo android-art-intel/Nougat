@@ -1,0 +1,24 @@
+## These tests fail during post-processing (JIT and DEFAULT modes); a patch for AuoFastJNIDetection feature fixing this issue is coming soon.
+AutoFastJNIDetection/RecursiveCall
+AutoFastJNIDetection/RecursiveCallMutual
+AutoFastJNIDetection/RecursiveCallNotTail
+## Test isseus, fail in all modes; to be fixed
+AutoFastJNIDetection/TryCatch
+AutoFastJNIDetection/VirtualCall
+## Post-processing for these tests should be updated - TBD
+AUR/MonitorOperation_01
+AUR/MonitorOperation_02
+AUR/MonitorOperation_03
+AUR/TryCatch_01
+AUR/TryCatch_02
+AUR/TryCatch_03
+AUR/TryCatch_04
+BBSimplifier/try_1B_NestedIfElsesD2
+BBSimplifier/try_1B_SequenceOfLoops
+BBSimplifier/try_4F_NestedIfElsesD2
+BBSimplifier/try_4F_SequenceOfLoops
+BBSimplifier/try_4F_SequenceOfNestedLoops
+BBSimplifier/try_4F_SimpleIf
+BBSimplifier/try_4F_SimpleIfElse
+BBSimplifier/try_5A_NestedIfElsesD2
+BBSimplifier/try_5A_SequenceOfLoops

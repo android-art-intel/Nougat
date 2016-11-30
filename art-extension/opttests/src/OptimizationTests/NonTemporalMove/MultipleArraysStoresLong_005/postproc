@@ -1,0 +1,282 @@
+#!/bin/bash
+#
+# Copyright (C) 2016 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+
+packagedir=`echo "$(cd $(dirname $0); pwd)/../"`
+declare -a testMethodsCounts=("testLoop:5")
+
+logcat=$1
+str_res=""
+res=0
+
+packagename=$(basename `cd $packagedir ; pwd`)
+metapackagename=$(dirname `cd $packagedir ; pwd`)
+testname=${PWD##*/}
+packagename=${PWD%%/$testname}
+packagename=${packagename##*/}
+metapackagename=${PWD%%/$packagename/$testname}
+metapackagename=${metapackagename##*/}
+
+
+if [ $HOST_MODE == "on" ]; then
+	if echo $ANDROID_BUILD_TOP | grep "64"  > /dev/null 2>&1; then
+		BITS="x86_64"
+	else
+		BITS="x86"
+	fi
+	export ANDROID_DATA=${RESULTS_DIR}/android-data
+else
+	if adb shell getprop ro.product.cpu.abi | grep "64"  > /dev/null 2>&1; then
+		BITS="x86_64"
+	else
+		BITS="x86"
+	fi
+	ANDROID_DATA=${ANDROID_DATA:="/data/"}
+fi
+
+
+
+
+function Exit()
+{
+
+   if [ ! $1 = 0 ]; then
+       echo -e "FAILED:\n"$2
+   else 
+       echo -e "PASSED:\n"$2
+   fi
+
+   exit $1
+}
+
+
+#TODO: remove this function if unused
+function FilterLogcat() 
+{
+    #Remove everything except dex2oat from logcat.
+    cat ${logcat} | grep "dex2oat" > ${logcat}_filtered
+    if [ ! -s ${logcat}_filtered ] ; then
+        Exit 1 "Failed to process logcat file $logcat: expected dex2oat entries not found"
+    else 
+        logcat=${logcat}_filtered
+    fi
+}
+
+function ExtractMethod() {
+    methodName=$1
+    logfileType=$2
+
+    if [[ "${logfileType}" == "logcat" ]] ; then
+        pattern="non_temporal_move: Begin: .* ${metapackagename}.${packagename}.${testname}.Main.*${methodName}"
+        logfile=${logcat}
+    elif [[ "${logfileType}" == "oatdump" ]] ; then
+        pattern=".* ${metapackagename}.${packagename}.${testname}.Main.*${methodName}.*dex_method_idx.*"
+        logfile=${oatdump}
+    else 
+       echo "UNEXPECTED: Failed to extract expected messages for method ${methodName} from log file ${logfile}"
+       return
+    fi
+
+    number_regexp='^[0-9]+$'
+
+
+    linenumber1=`grep -n -E "${pattern}" ${logfile} | cut -f1 -d: | head  -1`
+
+    if ! [[ $linenumber1 =~ $number_regexp ]] ; then
+#echo "UNEXPECTED:  messages not found, check if optimization is not disabled"
+        return
+    fi
+
+
+
+    linenumber2=`tail -n +$((linenumber1+1)) ${logfile} |grep -n -E "${pattern}"  | grep -v -E "${methodName}\(" | cut -f1 -d: | head  -1`
+    flag_no_other_methods="false"
+    if [[ "x$linenumber2" == "x" ]]; then
+        linenumber2=`cat ${logfile} | wc -l`
+        flag_no_other_methods="true"
+    else 
+# remember that we cut linenumber 1 lines when calculating linenumber2
+        linenumber2=$((linenumber2+linenumber1))
+    fi
+
+
+    
+    if ! [[ $linenumber2 =~ $number_regexp ]] ; then
+#        echo "UNEXPECTED: messages not found for method ${methodName} in file ${logfile}, check if optimization is not disabled"
+        return
+    fi
+
+    if [[ $flag_no_other_method =~ "true" ]] ; then 
+       linenumber2=$((linenumber2-1))
+    fi
+    
+
+    sed -n ${linenumber1},${linenumber2}p  ${logfile} > ${logfile}_${methodName}
+    if [ ! -s ${logfile}_${methodName} ] ; then
+       echo "UNEXPECTED: Failed to extract expected messages for method ${methodName} from log file ${logfile}"
+       return
+    fi
+
+    
+}
+
+
+
+function ExpectedApplied_postproc()
+{
+    expectedCount=$1
+    methodName=$2
+    logfileType=$3
+
+    ExtractMethod ${methodName} ${logfileType}
+
+    if [[ "${logfileType}" == "logcat" ]] ; then
+        logfile=${logcat}_${methodName}
+        expectedMessage="non_temporal_move: Add non-temporal to"
+     elif [[ "${logfileType}" == "oatdump" ]] ; then
+        logfile=${oatdump}_${methodName}
+        if [[ "${BITS}" == "x86_64" ]] ; then
+            if echo $testname | grep "Long_" > /dev/null 2>&1; then
+            #Long store in 64-bit mode: there should be 1 movntiq instruction
+                expectedMessage="movntiq"
+                expectedCount=${expectedCount}
+            else
+            #int store in 64bit mode: 1 movnti inxtruction expected
+                expectedMessage="movnti "
+                expected=${expectedCount}
+            fi
+        elif [[ "${BITS}" == "x86" ]] ; then
+            if echo $testname | grep "Long_" > /dev/null 2>&1; then
+            #Long store in 32-bit mode: there should be 2 movnti instructions
+                expectedMessage="movnti "
+                expectedCount=$((expectedCount*2))
+            else
+            #int store in 32bit mode: 1 movnti instruction expected
+                expectedMessage="movnti "
+                expectedCount=${expectedCount}
+            fi
+        else
+            str_res+="Can't detect bits ${BITS} and store type (int/long)"
+            res=$((res + 1))
+        fi
+    else
+        str_res+="UNEXPECTED: Postprocessing ${logfileType} failed for method $methodName;\n"
+        res=$((res + 1))
+    fi
+
+
+
+    if [ ! -s ${logfile} ] ; then 
+        str_res+="UNEXPECTED: Failed to extract non_temporal_move messages for method ${methodName} in file ${logfile}\n"
+        res=$((res + 1))
+        return
+    fi
+
+    expectedMessageCount=`cat ${logfile} | grep "${expectedMessage}" | wc -l`
+
+    if [[ "$expectedMessageCount" == "$expectedCount" ]]; then
+        str_res+="EXPECTED: string ${expectedMessage} found $expectedCount time(s) for method $methodName in file ${logfile};\n"
+        res=$((res + 0))
+    elif [[ "$expectedMessageCount" != "$expectedCount" ]]; then
+        str_res+="UNEXPECTED: string ${expectedMessage} found $expectedMessageCount time(s) instead of $expectedCount for method $methodName in file ${logfile};\n"
+        res=$((res + 1))
+    else
+        str_res+="UNEXPECTED: Postprocessing ${logfileType} failed for method $methodName in file ${logfile};\n"
+        res=$((res + 1))
+    fi
+
+}
+
+function Oatdump_getFile() {
+    if [ $HOST_MODE == "on" ]; then
+        oatFile="${ANDROID_DATA}/dalvik-cache/${BITS}/"$(ls ${ANDROID_DATA}/dalvik-cache/${BITS} | grep $testname)
+        RESULTS_DIR=$(dirname $logcat)
+#Cleanup
+        rm -f ${RESULTS_DIR}/oatdump
+        $ANDROID_BUILD_TOP/out/host/linux-x86/bin/oatdump --oat-file=${oatFile} > ${RESULTS_DIR}/oatdump
+    else
+        oatFile="${ANDROID_DATA}/dalvik-cache/${BITS}/sdcard@data@Main.jar@classes.dex"
+        RESULTS_DIR=$(dirname $logcat)
+#Cleanup
+        rm -f ${RESULTS_DIR}/oatdump
+        adb shell "oatdump --oat-file=${oatFile}" > ${RESULTS_DIR}/oatdump
+
+    fi	
+}
+
+
+function Oatdump_postproc()
+{
+    expectedCount=$1
+    expectedMovntiCount=${expectedCount}
+    if [[ "${BITS}" == "x86_64" ]] ; then
+        if echo $testname | grep "Long_" > /dev/null 2>&1; then
+#Long store in 64-bit mode: there should be 1 movntiq instruction
+            movntiCount=`cat ${RESULTS_DIR}/oatdump | grep "movntiq" | wc -l`
+                expectedMovntiCount=${expectedCount}
+        else
+#int store in 64bit mode: 1 movnti inxtruction expected
+            movntiCount=`cat ${RESULTS_DIR}/oatdump | grep "movnti" | grep -v "movntiq" | wc -l`
+                expectedMovntiCount=${expectedCount}
+    fi
+        elif [[ "${BITS}" == "x86" ]] ; then
+        if echo $testname | grep "Long_" > /dev/null 2>&1; then
+#Long store in 32-bit mode: there should be 2 movnti instructions
+            movntiCount=`cat ${RESULTS_DIR}/oatdump | grep "movnti" | grep -v "movntiq" | wc -l`
+                expectedMovntiCount=$((expectedCount*2))
+        else
+#int store in 32bit mode: 1 movnti instruction expected
+            movntiCount=`cat ${RESULTS_DIR}/oatdump | grep "movnti" | grep -v "movntiq" | wc -l`
+                expectedMovntiCount=${expectedCount}
+    fi
+    else
+        str_res+="Can't detect bits ${BITS} and store type (int/long)"
+            res=1
+            fi
+
+
+            if [[ "${movntiCount}" == "$expectedMovntiCount" ]]; then
+                str_res+="EXPECTED: Movnti instruction found $expectedMovntiCount time(s)"
+                    res=0
+            else
+                str_res+="UNEXPECTED: Movnti instruction found ${movntiCount} time(s) instead of $expectedMovntiCount"
+                    res=1
+                    fi
+                    Exit $((res)) "$str_res"
+
+}
+
+# Get oatdump file
+Oatdump_getFile
+oatdump=${RESULTS_DIR}/oatdump
+
+#Clean-up results dir before processing logcat:
+rm -f ${logcat}_*
+
+#Iterate over methods:
+for i in "${testMethodsCounts[@]}" ; do
+     methodName="${i%%:*}"
+     expectedCount="${i##*:}"
+     ExpectedApplied_postproc $expectedCount $methodName "logcat"
+     ExpectedApplied_postproc $expectedCount $methodName "oatdump"
+done
+
+Exit $((res)) "$str_res"
+
+   
+
+

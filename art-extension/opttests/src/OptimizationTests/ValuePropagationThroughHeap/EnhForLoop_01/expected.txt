@@ -1,0 +1,3 @@
+Test EnhForLoop_01; Subtest test1; Result: 0
+Test EnhForLoop_01; Subtest test2; Result: 33.749500003125
+Test EnhForLoop_01; Subtest test3; Result: 4

@@ -1,0 +1,91 @@
+#!/bin/bash
+#
+# Copyright (C) 2016 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+
+source ../postproc_common
+ret=0
+
+METHODS="testByte_1tc01
+testByte_1tc03
+testByte_1tc04
+testByte_1tc10
+testByte_1tc11
+testInt_3tc1
+testInt_3tc3
+testInt_3tc4
+testInt_3tc5
+testInt_3tc6
+testShort_8tc3
+testShort_8tc4
+testShort_8tc5
+testShort_8tc6
+testInt_2tc11
+testInt_2tc32
+testInt_2tc42
+testInt_2tc52
+testInt_2tc62
+testLong_3tc1
+testLong_3tc3
+testLong_3tc4
+testLong_3tc5
+testLong_3tc6
+testShort_2tc1
+testShort_2tc3
+testShort_2tc4
+testShort_2tc5
+testShort_2tc6
+testFloat_1tc1
+testFloat_1tc3
+testFloat_1tc4
+testFloat_1tc5
+testFloat_1tc6
+testByte_5tc1
+testByte_5tc3
+testByte_5tc4
+testByte_5tc5
+testByte_5tc6
+testShort_7tc1
+testShort_7tc3
+testShort_7tc4
+testShort_7tc5
+testShort_7tc6
+testLong_6tc1
+testLong_6tc3
+testLong_6tc4
+testLong_6tc5
+testLong_6tc6
+testLong_7tc1
+testLong_7tc3
+testLong_7tc4
+testLong_7tc5
+testLong_7tc6
+testByte_2tc1
+testByte_2tc3
+testByte_2tc4
+testByte_2tc5
+testByte_2tc6"
+
+for method in $METHODS
+do
+    search_method $method
+    if [[ $? -ne 0 ]]
+    then
+        echo "Couldn't find test $method in the list of optimized loops"
+        ret=1
+    fi
+done
+exit $ret

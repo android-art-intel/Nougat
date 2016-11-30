@@ -1,0 +1,2 @@
+Test NullCheck_03; Subtest test; Result: 10012
+Test NullCheck_03; Subtest testWithGCStress; Result: 10012

@@ -1,0 +1,4 @@
+java.lang.ClassCastException: OptimizationTests.AUR.CheckCast_01.Main$A cannot be cast to OptimizationTests.AUR.CheckCast_01.Main$D
+OptimizationTests.AUR.CheckCast_01.Main.runTest(Main.java:45)
+OptimizationTests.AUR.CheckCast_01.Main.test(Main.java:61)
+Test CheckCast_01; Subtest testWithGCStress; Result: java.lang.ClassCastException: OptimizationTests.AUR.CheckCast_01.Main$A cannot be cast to OptimizationTests.AUR.CheckCast_01.Main$D

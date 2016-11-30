@@ -1,0 +1,158 @@
+#!/bin/bash
+#
+# Copyright (C) 2016 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+logcat=$1
+str_res=""
+res=0
+expectedCountSuccess=${expectedCountSuccess:-1}
+
+packagename=$(basename `cd $packagedir ; pwd`)
+metapackagename=$(dirname `cd $packagedir ; pwd`)
+testname=${PWD##*/}
+packagename=${PWD%%/$testname}
+packagename=${packagename##*/}
+metapackagename=${PWD%%/$packagename/$testname}
+metapackagename=${metapackagename##*/}
+
+function Exit()
+{
+
+   if [ ! $1 = 0 ]; then
+       echo -e "FAILED:\n"$2
+   else 
+       echo -e "PASSED:\n"$2
+   fi
+
+   exit $1
+}
+
+function ExtractMessagesFromLogcat()
+{
+    methodName=$1
+    number_regexp='^[0-9]+$'
+    pattern1="devirtualization: Started devirtualization attempt for ${type} OptimizationTests.${pckgname}.${testname}.Main.${method}()"
+    pattern2="devirtualization: Finished devirtualization attempt for ${type} OptimizationTests.${pckgname}.${testname}.Main.${method}()"
+
+echo $pattern1
+echo $pattern2
+# logcat example when speculation has happened
+#
+
+#06-02 12:53:47.307 10947 10947 I dex2oat : devirtualization: Started devirtualization attempt for byte OptimizationTests.Devirtualization.InvokeInterfaceByte.Main.runTest()
+#06-02 12:53:47.307 10947 10947 I dex2oat : devirtualization: Found precise type OptimizationTests.Devirtualization.InvokeInterfaceByte.CondVirtExt for b7 InvokeInterface@0x5  [ l5 ]
+#06-02 12:53:47.307 10947 10947 I dex2oat : devirtualization: The following candidate has been found b7 InvokeInterface@0x5  [ l5 ]
+#06-02 12:53:47.307 10947 10947 I dex2oat : devirtualization: Trying to speculate for b7 InvokeInterface@0x5  [ l5 ] using recovery mode not-needed
+#06-02 12:53:47.307 10947 10947 I dex2oat : devirtualization: Successfully speculated for b7 InvokeInterface@0x5  [ l5 ] with no guard.
+#06-02 12:53:47.307 10947 10947 I dex2oat : devirtualization: Finished devirtualization attempt for byte OptimizationTests.Devirtualization.InvokeInterfaceByte.Main.runTest()
+
+#06-02 12:53:53.896 11182 11182 I dex2oat : devirtualization: Started devirtualization attempt for void OptimizationTests.Devirtualization.InvokeVirtual_Byte.Main.runTestNewInstance()
+#06-02 12:53:53.896 11182 11182 I dex2oat : devirtualization: Found precise type java.util.ArrayList for z9 InvokeVirtual@0xb  [ l5 l8 ]
+#06-02 12:53:53.896 11182 11182 I dex2oat : devirtualization: The following candidate has been found z9 InvokeVirtual@0xb  [ l5 l8 ]
+#06-02 12:53:53.896 11182 11182 I dex2oat : devirtualization: Trying to speculate for z9 InvokeVirtual@0xb  [ l5 l8 ] using recovery mode not-needed
+#06-02 12:53:53.896 11182 11182 I dex2oat : devirtualization: Successfully speculated for z9 InvokeVirtual@0xb  [ l5 l8 ] with no guard.
+#06-02 12:53:53.896 11182 11182 I dex2oat : devirtualization: Finished devirtualization attempt for void OptimizationTests.Devirtualization.InvokeVirtual_Byte.Main.runTestNewInstance()
+
+
+    cat ${logcat} | sed -e '1,/osr=true/ d' > ${logcat}_osr
+
+    if [[ ! -s ${logcat}_osr ]] ; then
+        Exit 1 "UNEXPECTED: osr=true message not found"
+
+    fi
+
+    linenumber1=`cat ${logcat}_osr | grep -n -E "${pattern1}" | cut -f1 -d: | head  -1`
+
+    if ! [[ $linenumber1 =~ $number_regexp ]] ; then
+        Exit 1 "UNEXPECTED: devirtualization message is not found, check if devirtualization is not disabled"
+    fi
+    linenumber2=`cat ${logcat}_osr | grep -n -E "${pattern2}" | cut -f1 -d: | head  -1`
+
+    if ! [[ $linenumber2 =~ $number_regexp ]] ; then
+        Exit 1 "UNEXPECTED: finish devirtualization message is not found"
+    fi
+
+    sed -n ${linenumber1},${linenumber2}p  ${logcat}_osr > ${logcat}_extracted
+    if [ ! -s ${logcat}_extracted ] ; then
+        Exit 1 "UNEXPECTED: Failed to extract devirtualization messages from logcat"
+    fi
+}
+
+function PostprocMessagesFromLogcat()
+{
+    ExtractMessagesFromLogcat
+
+    if [[ "${precisetype}" == ""  ]]; then
+        precisetype="OptimizationTests.${pckgname}.${testname}.CondVirtExt"
+    fi
+
+    grep -E "devirtualization: Found precise type ${precisetype} for ${tt}[0-9]+ ${invoke}" ${logcat}_extracted && \
+        grep -E "devirtualization: The following candidate has been found ${tt}[0-9]+ ${invoke}" ${logcat}_extracted && \
+        grep -E "devirtualization: Trying to speculate for ${tt}[0-9]+ ${invoke}" ${logcat}_extracted && \
+        grep -E "devirtualization: Successfully speculated for ${tt}[0-9]+ ${invoke}" ${logcat}_extracted || \
+        res=$((res + 1))
+
+    if [[ "${res}" == "0" ]]; then
+        str_res+="EXPECTED: devirtualization has happened;\n"
+        res=$((res + 0))
+    elif [[ "${res}" == "1" ]]; then
+        str_res+="UNEXPECTED: devirtualization has not happened;\n"
+        res=$((res + 1))
+    else
+        str_res+="UNEXPECTED: Postprocessing failed;\n"
+        res=$((res + 1))
+    fi
+
+
+    countSuccess=`grep -E "devirtualization: Successfully speculated for ${tt}[0-9]+ ${invoke}" ${logcat}_extracted |wc -l`
+    if [[ "${countSuccess}" == "${expectedCountSuccess}" ]] ; then 
+        str_res+="EXPECTED: devirtualization happened ${countSuccess} times;\n"
+        res=$((res + 0))
+    else 
+        str_res+="UNEXPECTED: devirtualization happened ${countSuccess} times but expected ${expectedCountSuccess} times;\n"
+        res=$((res + 1))
+    fi
+
+    if cat ${logcat} | sed -e '1,/osr=true/ d' | grep "Jumping to .* ${metapackagename}.${packagename}.${testname}.Main.${method}(.*)" 2>&1 > /dev/null ; then
+       str_res+="EXPECTED: message \"Jumping to .* ${metapackagename}.${packagename}.${testname}.Main.${method}\" found;\n"
+       res=$((res + 0))
+    else
+       str_res+="UNEXPECTED: message \"Jumping to .* ${metapackagename}.${packagename}.${testname}.Main.${method}\" NOT found;\n"
+       res=$((res + 1))
+    fi
+
+
+    if cat ${logcat} | sed -e '1,/osr=true/ d' | grep "Done running OSR code for .* ${metapackagename}.${packagename}.${testname}.Main.${method}(.*)" 2>&1 > /dev/null ; then
+        str_res+="EXPECTED: message \"Done running OSR code for .* ${metapackagename}.${packagename}.${testname}.Main.${method}\" found;\n"
+        res=$((res + 0))
+    else
+        str_res+="UNEXPECTED: message \"Done running OSR code for .* ${metapackagename}.${packagename}.${testname}.Main.${method}\" NOT found;\n"
+        res=$((res + 1))
+    fi
+
+
+}
+
+#Clean-up results dir before processing logcat:
+rm -f ${logcat}_*
+
+PostprocMessagesFromLogcat
+
+Exit $((res)) "$str_res"
+
+   
+
+

@@ -1,0 +1,146 @@
+#!/bin/bash
+#
+# Copyright (C) 2016 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+logcat=$1
+#str_res=""
+#res=0
+dn=`dirname $logcat`
+
+function Exit()
+{
+
+   if [ ! $1 = 0 ]; then
+       echo -e "FAILED:\n"$2
+   else 
+       echo -e "PASSED:\n"$2
+   fi
+
+   exit $1
+}
+
+function ExtractMessagesFromLogcat()
+{
+    methodName=$1
+    number_regexp='^[0-9]+$'
+    pattern1="devirtualization: Started devirtualization attempt for ${type} OptimizationTests.${pckgname}.${testname}.${where_method}()"
+    pattern2="devirtualization: Finished devirtualization attempt for ${type} OptimizationTests.${pckgname}.${testname}.${where_method}()"
+    #echo $pattern1
+    #echo $pattern2
+
+###
+# logcat example when devirtualization has not happened
+#
+#
+#09-16 15:40:06.020  5549  5549 I dex2oat : devirtualization: Started devirtualization attempt for int OptimizationTests.ClassHierarchyAnalysis.Test_01.A.test()
+#09-16 15:40:06.020  5549  5549 I dex2oat : devirtualization: CHA #target = 2 for int OptimizationTests.ClassHierarchyAnalysis.Test_01.A.m()
+#09-16 15:40:06.020  5549  5549 I dex2oat : devirtualization: CHA #target = 2 for int OptimizationTests.ClassHierarchyAnalysis.Test_01.A.m()
+#09-16 15:40:06.020  5549  5549 I dex2oat : devirtualization: Finished devirtualization attempt for int OptimizationTests.ClassHierarchyAnalysis.Test_01.A.test()
+#
+###
+# logcat example when devirtualization has not happened
+#
+#
+#09-16 15:40:10.879  5704  5704 I dex2oat : devirtualization: Started devirtualization attempt for int OptimizationTests.ClassHierarchyAnalysis.Test_06.A.test()
+#09-16 15:40:10.879  5704  5704 I dex2oat : devirtualization: CHA #target = 1 for int OptimizationTests.ClassHierarchyAnalysis.Test_06.A.m()
+#09-16 15:40:10.879  5704  5704 I dex2oat : devirtualization: Found imprecise types OptimizationTests.ClassHierarchyAnalysis.Test_06.B, for i15 InvokeVirtual@0x6  [ l14 ]
+#09-16 15:40:10.879  5704  5704 I dex2oat : devirtualization: The following candidate has been found i15 InvokeVirtual@0x6  [ l14 ]
+#09-16 15:40:10.879  5704  5704 I dex2oat : devirtualization: Trying to speculate for i15 InvokeVirtual@0x6  [ l14 ] using recovery mode code-versioning
+#09-16 15:40:10.879  5704  5704 I dex2oat : devirtualization: Successfully handled i15 InvokeVirtual@0x6  [ l14 ] via code versioning.
+#09-16 15:40:10.879  5704  5704 I dex2oat : devirtualization: Successfully speculated for i15 InvokeVirtual@0x6  [ l14 ] via code-versioning
+#09-16 15:40:10.879  5704  5704 I dex2oat : devirtualization: Finished devirtualization attempt for int OptimizationTests.ClassHierarchyAnalysis.Test_06.A.test()
+#
+###
+
+    linenumber1=`grep -n -E "${pattern1}" ${logcat} | cut -f1 -d: | head  -1`
+
+    if ! [[ $linenumber1 =~ $number_regexp ]] ; then
+        Exit 1 "UNEXPECTED: devirtualization message is not found, check if devirtualization is not disabled"
+    fi
+    linenumber2=`grep -n -E "${pattern2}" ${logcat} | cut -f1 -d: | head  -1`
+
+    if ! [[ $linenumber2 =~ $number_regexp ]] ; then
+        Exit 1 "UNEXPECTED: finish devirtualization message is not found"
+    fi
+
+    sed -n ${linenumber1},${linenumber2}p  ${logcat} > ${logcat}_extracted
+    if [ ! -s ${logcat}_extracted ] ; then
+        Exit 1 "UNEXPECTED: Failed to extract devirtualization messages from logcat"
+    fi
+}
+
+function CheckDEvirtualization()
+{
+    ExtractMessagesFromLogcat
+
+    if [[ "${precisetype}" == ""  ]]; then
+        imprecisetype="OptimizationTests.${pckgname}.${testname}.${child},"
+    fi
+    grep -E "devirtualization: Found imprecise types ${imprecisetype} for ${tt}[0-9]+ ${invoke}" ${logcat}_extracted > ${dn}/tmp
+    [[ -s ${dn}/tmp ]] && sed -e 's/^.*for //' -e 's/\[/\\[/g' -e 's/\]/\\]/g' < ${dn}/tmp > ${dn}/tmp1
+    candidate=`cat ${dn}/tmp1`
+
+    if [[ "${candidate}" == "" ]]; then
+        Exit 1 "Post-processing error: candidate for de-virtualizatin is empty"
+    fi 
+
+    echo "candidate is ${candidate}"
+
+    grep -E "devirtualization: The following candidate has been found ${candidate}" ${logcat}_extracted && \
+    grep -E "devirtualization: Trying to speculate for ${candidate}" ${logcat}_extracted && \
+    grep -E "devirtualization: Successfully speculated for ${candidate}" ${logcat}_extracted || \
+        res=$((res + 1))
+    if [[ "${res}" == "0" ]]; then
+        str_res+="EXPECTED: devirtualization has happened;\n"
+        res=$((res + 0))
+    elif [[ "${res}" == "1" ]]; then
+        str_res+="UNEXPECTED: devirtualization has not happened;\n"
+        res=$((res + 1))
+    else
+        str_res+="UNEXPECTED: Postprocessing failed;\n"
+        res=$((res + 1))
+    fi
+}
+
+function CheckCHAtargetCount()
+{
+    ExtractMessagesFromLogcat
+
+    pattern3="devirtualization: CHA #target = ${children_number} for ${type} OptimizationTests.${pckgname}.${testname}.${what_method}()"
+    # echo "pattern3 is ${pattern3}"
+    cc=`grep -E "${pattern3}" ${logcat}_extracted | wc -l`
+
+    if ! [[ "${cc}" == "${calls_number}" ]] ; then
+        res=$((res + 1))
+        str_res+="UNEXPECTED: \"CHA #target = ${children_number} for ${type} OptimizationTests.${pckgname}.${testname}.${what_method}()\" was not found ${calls_number} times;\n"
+    else
+        res=$((res + 0))
+        str_res+="EXPECTED: \"CHA #target = ${children_number} for ${type} OptimizationTests.${pckgname}.${testname}.${what_method}()\" was found ${calls_number} times;\n"
+    fi
+}
+
+#Clean-up results dir before processing logcat:
+rm -f ${logcat}_*
+
+CheckCHAtargetCount
+
+[[ "${check_devirt}" == "1" ]] && CheckDEvirtualization
+
+#Exit $((res)) "$str_res"
+
+   
+
+

@@ -1,0 +1,5 @@
+LoopIntGE100.test1 result: 170
+LoopIntGE100.test2 result: 330
+LoopIntGE100.test3 result: 641
+LoopIntGE100.test4 result: 66460
+LoopIntGE100.test5 result: 1550836592

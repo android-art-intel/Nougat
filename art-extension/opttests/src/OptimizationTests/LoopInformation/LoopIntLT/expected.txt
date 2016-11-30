@@ -1,0 +1,5 @@
+LoopIntLT.test1 result: 591751049
+LoopIntLT.test2 result: 320
+LoopIntLT.test3 result: 640
+LoopIntLT.test4 result: 591751043
+LoopIntLT.test5 result: -656982833

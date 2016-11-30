@@ -1,0 +1,3 @@
+Test ForLoop_03; Subtest test1; Result: 0
+Test ForLoop_03; Subtest test2; Result: 787.999937500625
+Test ForLoop_03; Subtest test3; Result: 4

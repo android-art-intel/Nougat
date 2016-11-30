@@ -1,0 +1,2 @@
+result: 40000
+Test completed

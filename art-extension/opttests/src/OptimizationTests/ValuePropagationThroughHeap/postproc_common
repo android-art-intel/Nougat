@@ -1,0 +1,121 @@
+#!/bin/bash
+#
+# Copyright (C) 2016 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+logcat=$1
+str_res=""
+res=0
+
+function Exit()
+{
+
+   if [ ! $1 = 0 ]; then
+       echo -e "FAILED:\n"$2
+   else 
+       echo -e "PASSED:\n"$2
+   fi
+
+   exit $1
+}
+
+function ExtractMethodLogcat()
+{
+    methodName=$1
+    number_regexp='^[0-9]+$'
+    pattern="value_propagation_through_heap: Try to optimize .* OptimizationTests.${pckgname}.${testname}.Main"
+
+    linenumber1=`grep -n -E "${pattern}\.${methodName}\(" ${logcat} | cut -f1 -d: | head  -1`
+
+    if ! [[ $linenumber1 =~ $number_regexp ]] ; then
+#echo "UNEXPECTED: Value Propagation Through Heap messages not found, check if optimization is not disabled"
+        return
+    fi
+
+    linenumber2=`tail -n +$((linenumber1+1)) $logcat |grep -n -E "${pattern}"  | grep -v -E "${methodName}\(" | cut -f1 -d: | head  -1`
+
+    flag_no_other_methods="false"
+    if [[ "x$linenumber2" == "x" ]]; then
+        linenumber2=`cat ${logcat} | wc -l`
+        flag_no_other_methods="true"
+    else 
+# remember that we cut linenumber 1 lines when calculating linenumber2
+        linenumber2=$((linenumber2+linenumber1))
+    fi
+
+    if ! [[ $linenumber2 =~ $number_regexp ]] ; then
+#        echo "UNEXPECTED: Value Propagation Through Heap messages not found for method ${methodName}, check if optimization is not disabled"
+        return
+    fi
+
+    if [[ $flag_no_other_method =~ "true" ]] ; then 
+       linenumber2=$((linenumber2-1))
+    fi
+
+    sed -n ${linenumber1},${linenumber2}p  ${logcat} > ${logcat}_${methodName}
+    if [ ! -s ${logcat}_${methodName} ] ; then
+       echo "UNEXPECTED: Failed to extract Value Propagation Through Heap messages for method ${methodName} from logcat file ${logcat}"
+       return
+    fi
+}
+
+function ExpectedApplied_postproc()
+{
+    expectedCount=$1
+    methodName=$2
+    logcat_file=${logcat}_$methodName
+
+    ExtractMethodLogcat $methodName
+
+    if [ ! -s ${logcat_file} ] ; then 
+        str_res+="UNEXPECTED: Failed to extract Value Propagation Through Heap messages for method ${methodName}\n"
+        res=$((res + 1))
+        return
+    fi
+
+# TODO: to grep exactly what is needed: InstanceField or StaticField
+# example:
+# I dex2oat : value_propagation_through_heap: Successfully replaced use of getter d58 InstanceFieldGet@0x1c  [ l11 ] with value d104 DoubleConstant@0xffffffff  2 stored in setter v35 InstanceFieldSet@0x9  [ l11 d104 ]
+    successfully_sunk=`cat ${logcat_file} | grep -E "value_propagation_through_heap: Successfully replaced use of getter [i,d,s,c,b,z][0-9]+ ${field}Get" | wc -l`
+
+    if [[ "$successfully_sunk" == "$expectedCount" ]]; then
+        str_res+="EXPECTED: Value Propagation Through Heap marker found $expectedCount time(s) for method $methodName;\n"
+        res=$((res + 0))
+    elif [[ "$successfully_sunk" != "$expectedCount" ]]; then
+        str_res+="UNEXPECTED: Value Propagation Through Heap marker found $successfully_sunk time(s) instead of $expectedCount for method $methodName;\n"
+        res=$((res + 1))
+    else
+        str_res+="UNEXPECTED: Postprocessing failed for method $methodName;\n"
+        res=$((res + 1))
+    fi
+
+}
+
+#Clean-up results dir before processing logcat:
+rm -f ${logcat}_*
+
+#Iterate over methods:
+for i in "${testMethodsCounts[@]}" ; do
+     methodName="${i%%:*}"
+     expectedCount="${i##*:}"
+
+     ExpectedApplied_postproc $expectedCount $methodName
+done
+
+Exit $((res)) "$str_res"
+
+   
+
+

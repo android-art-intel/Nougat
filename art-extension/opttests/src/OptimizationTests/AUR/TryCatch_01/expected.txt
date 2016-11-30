@@ -1,0 +1,2 @@
+Test TryCatch_01; Subtest test; Result: 6
+Test TryCatch_01; Subtest testWithGCStress; Result: 6

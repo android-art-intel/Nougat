@@ -1,0 +1,1 @@
+-Xcompiler-option --print-passes=value_propagation_through_heap -Xcompiler-option --runtime-arg -Xcompiler-option -verbose:compiler

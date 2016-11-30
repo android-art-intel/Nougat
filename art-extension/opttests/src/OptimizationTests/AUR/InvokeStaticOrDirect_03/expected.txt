@@ -1,0 +1,2 @@
+Test InvokeStaticOrDirect_03; Subtest test; Result: 1
+Test InvokeStaticOrDirect_03; Subtest testWithGCStress; Result: 1

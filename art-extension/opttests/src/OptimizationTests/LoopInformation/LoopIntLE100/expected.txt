@@ -1,0 +1,5 @@
+LoopIntLE100.test1 result: 160
+LoopIntLE100.test2 result: 320
+LoopIntLE100.test3 result: 640
+LoopIntLE100.test4 result: 2660
+LoopIntLE100.test5 result: -1550836592

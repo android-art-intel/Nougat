@@ -1,0 +1,12 @@
+LoopFloatNaN.test1 result: 2130706516
+LoopFloatNaN.test10 result: 2130706516
+LoopFloatNaN.test11 result: 2130706516
+LoopFloatNaN.test12 result: -2125438302
+LoopFloatNaN.test2 result: 2130706516
+LoopFloatNaN.test3 result: -2130681182
+LoopFloatNaN.test4 result: 2130706516
+LoopFloatNaN.test5 result: 2130706516
+LoopFloatNaN.test6 result: -2130681182
+LoopFloatNaN.test7 result: 2130706516
+LoopFloatNaN.test8 result: 2130706516
+LoopFloatNaN.test9 result: -2125438302

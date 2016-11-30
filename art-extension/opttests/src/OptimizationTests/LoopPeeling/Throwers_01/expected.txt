@@ -1,0 +1,3 @@
+Test Throwers_01; Subtest test_02; Result: 10006
+Test Throwers_01; Subtest test_03; Result: 0
+Test Throwers_01; Subtest anotherTest_01; Result: 0

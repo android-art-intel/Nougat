@@ -1,0 +1,5 @@
+LoopIntGT2.test1 result: 11175490
+LoopIntGT2.test2 result: 330
+LoopIntGT2.test3 result: 641
+LoopIntGT2.test4 result: 1679809438
+LoopIntGT2.test5 result: -210055310

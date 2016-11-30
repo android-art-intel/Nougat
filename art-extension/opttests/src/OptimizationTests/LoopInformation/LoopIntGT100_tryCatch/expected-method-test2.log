@@ -1,0 +1,5 @@
+dump_loop: Depth = 0
+dump_loop: The loop is not bottom tested
+dump_loop: Bound information:
+dump_loop: The loop does not have a basic IV
+dump_loop: The loop has unknown number of iterations

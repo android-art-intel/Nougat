@@ -1,0 +1,4 @@
+class java.lang.NullPointerException
+OptimizationTests.AUR.NewArray_02.Main.runTest(Main.java:40)
+OptimizationTests.AUR.NewArray_02.Main.test(Main.java:57)
+Test NewArray_02; Subtest testWithGCStress; Result: class java.lang.NullPointerException

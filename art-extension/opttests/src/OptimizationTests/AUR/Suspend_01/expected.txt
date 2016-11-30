@@ -1,0 +1,2 @@
+Test Suspend_01; Subtest test; Result: 1234
+Test Suspend_01; Subtest testWithGCStress; Result: 1234

@@ -1,0 +1,4 @@
+class java.lang.ArrayStoreException
+OptimizationTests.AUR.ArraySet_02.Main.runTest(Main.java:36)
+OptimizationTests.AUR.ArraySet_02.Main.test(Main.java:52)
+Test ArraySet_02; Subtest testWithGCStress; Result: class java.lang.ArrayStoreException

@@ -1,0 +1,4 @@
+java.lang.ArithmeticException: divide by zero
+OptimizationTests.AUR.DivZeroCheck_02.Main.runTest(Main.java:40)
+OptimizationTests.AUR.DivZeroCheck_02.Main.test(Main.java:48)
+Test DivZeroCheck_02; Subtest testWithGCStress; Result: java.lang.ArithmeticException: divide by zero

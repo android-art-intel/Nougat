@@ -1,0 +1,2 @@
+Test MonitorOperation_03; Subtest test; Result: -10
+Test MonitorOperation_03; Subtest testWithGCStress; Result: -10

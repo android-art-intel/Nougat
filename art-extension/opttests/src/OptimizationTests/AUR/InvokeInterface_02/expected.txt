@@ -1,0 +1,7 @@
+class java.lang.ArithmeticException
+OptimizationTests.AUR.InvokeInterface_02.C.intFunc(Main.java:43)
+OptimizationTests.AUR.InvokeInterface_02.Main.runTest(Main.java:59)
+class java.lang.ArithmeticException
+OptimizationTests.AUR.InvokeInterface_02.C.intFunc(Main.java:43)
+OptimizationTests.AUR.InvokeInterface_02.Main.runTest(Main.java:59)
+Test InvokeInterface_02; Subtest testWithGCStress; Result: class java.lang.ArithmeticException

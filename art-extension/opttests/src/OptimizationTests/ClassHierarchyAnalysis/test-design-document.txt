@@ -1,0 +1,70 @@
+https://jira01.devtools.intel.com/browse/CAR-2912
+
+Post-processing was tested for AOT mode
+In JIT/DEFAULT modes tests are run w/o post-processing
+
+From QA document:
+----------------
+Specific test cases that should be covered if known
+
+We can create a test that has class A, B, and C. A is an abstract class, B extends A, and C extends A.  Then, we can define a method: m() in A, and let B and C to implement m() or not. A test() function in class A can try to call m() as a virtual call.
+We can create three test cases.
+1.	B and C don't implement m().
+2.	Only B implements m().
+3.	B and C implement m().
+From testing, we should check if CHA reports correct numbers for m(). For case 1, the number of targets should be 1. For case 2 and 3, the number of targets should be 2. Remember that if there are more than two targets, CHA still reports two to reduce the query time.
+The following example demonstrates that A, B, and C implement m(), so CHA reports "#target = 2".
+
+Ex: A.java
+public abstract class A {
+  public int m() { return 0; }
+  public int test() {
+    int total = m();
+    for (int i = 0; i < 100; i++) {
+      total += m();
+      total += m();
+    }
+    return total;
+  }
+}
+Ex: B.java
+public class B extends A {
+  public int m() {
+    System.out.println("m() from class B");
+    return 1234;
+  }
+}
+Ex: C.java
+public class C extends A {
+  public int m() {
+    System.out.println("m() from class C");
+    return 5678;
+  }
+}
+Ex: Main.java
+public class Main {
+  public static void main(String[] args) {
+      B b = new B();
+      System.out.println("a.test() = " + b.test());
+  }
+}
+Ex: Build and Run
+$ javac -source 1.7 -target 1.7 A.java B.java C.java Main.java 
+warning: [options] bootstrap class path not set in conjunction with -source 1.7
+1 warning
+$ dx --dex --keep-classes --output=Main.dex A.class B.class C.class Main.class 
+$ adb push Main.dex /data/local/tmp/[100%] /data/local/tmp/Main.dex
+$ adb shell dalvikvm -Xcompiler-option --runtime-arg -Xcompiler-option -XCHA -Xcompiler-option --print-passes=devirtualization,devirtualization_after_inlining -cp /data/local/tmp/Main.dex Main
+$ adb logcat |& /tmp/1.log
+$ grep "#target"  /tmp/1.log |grep A.m
+06-14 16:42:30.476 31983 31983 I dex2oat : devirtualization: CHA #target = 2 for int A.m()
+06-14 16:42:30.477 31983 31983 I dex2oat : devirtualization: CHA #target = 2 for int A.m()
+06-14 16:42:30.478 31983 31983 I dex2oat : devirtualization: CHA #target = 2 for int A.m()
+06-14 16:42:30.479 31983 31983 I dex2oat : devirtualization_after_inlining: CHA #target = 2 for int A.m()
+06-14 16:42:30.479 31983 31983 I dex2oat : devirtualization_after_inlining: CHA #target = 2 for int A.m()
+06-14 16:42:30.480 31983 31983 I dex2oat : devirtualization_after_inlining: CHA #target = 2 for int A.m()
+
+Recommendation on testing focus
+
+Testing focus is to count the number of methods implemented in different classes. Make sure CHA reports correctly (and conservatively), when the number of the target is .one. from CHA. This .one. target will lead to possible devirtualization and inlining.
+

@@ -1,0 +1,43 @@
+The suitecan be run in different modes.
+To test stecific optimization in specific mode logcat post-processing was implemented (-p option, please refer to README).
+When post-processing is off the tests work as ordinary functional tests.
+
+Tested modes:
+-------------
+DEFAULT
+    export VM_ARGS="-Xusejit:true -XOatFileManagerCompilerFilter:interpret-only -verbose:jit"
+
+    packages that implement optimizations specific to this mode:
+        AutoFastJNIDetection
+        OSR
+
+JIT
+    export VM_ARGS="-Xusejit:true -XOatFileManagerCompilerFilter:interpret-only -Xjit-block-mode"
+
+    packages that implement optimizations specific to this mode:
+        AutoFastJNIDetection
+
+AOT
+    export VM_ARGS="-Xcompiler-option --compiler-filter=speed -Xno-dex-file-fallback"
+
+    packages that implement optimizations specific to this mode:
+        AUR
+        BBSimplifier
+        ClassHierarchyAnalysis
+        ConstantCalculationSinking
+        Devirtualization
+        FormBottomLoops
+        InductionVariable
+        Inlining
+        LoadHoistStoreSink
+        LoopInformation
+        LoopPeeling
+        LoopUnrolling
+        NonTemporalMove
+        RemoveSuspendChecks
+        ShortLeafMethodsInlining
+        ShortMethodsInliningNonVirtualInvokes
+        TrivialLoopEvaluator
+        UnusedLoopRemoval
+        ValuePropagationThroughHeap
+

@@ -1,0 +1,9 @@
+LoopFloatGE.test1 result: 1137214806
+LoopFloatGE.test2 result: -1835964264
+LoopFloatGE.test3 result: 524856906
+LoopFloatGE.test4 result: 785445222
+LoopFloatGE.test5 result: 599808464
+LoopFloatGE.test6 result: 363318469
+LoopFloatGE.test7 result: 271211865
+LoopFloatGE.test8 result: 250539921
+LoopFloatGE.test9 result: -1908205077

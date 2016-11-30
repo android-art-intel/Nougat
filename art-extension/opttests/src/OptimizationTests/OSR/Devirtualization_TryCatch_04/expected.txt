@@ -1,0 +1,3 @@
+java.lang.Exception: Exception 1
+java.lang.Exception: Exception 2
+Result -1794967296

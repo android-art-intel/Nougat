@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+# Copyright (C) 2016 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+
+packagedir=`echo "$(cd $(dirname $0); pwd)/../"`
+
+declare -a testMethodsCounts=( "testZZZIntricateReversePhis2H:Complex Loop is already bottom tested"     "testZZZIntricateReversePhis2B:Loop gate passed"     "testZZZIntricateReversePhis3H:Complex Loop is already bottom tested"     "testZZZIntricateReversePhis3B:Loop gate passed"     "testZZZIntricateReversePhis2ComplexH:Loop gate passed"     "testZZZIntricateReversePhis2ComplexB:Loop gate passed"     "testZZZIntricateReversePhis3ComplexH:Loop gate passed"     "testZZZIntricateReversePhis3ComplexB:Loop gate passed"     "testZZZIntricateDirectPhis3H:Loop gate passed"     "testZZZIntricateDirectPhis3B:Loop gate passed"     "testZZZIntricateDirectPhis3ComplexH:Loop gate passed"     "testZZZIntricateDirectPhis3ComplexB:Loop gate passed"     "testZZZ2NodesSumB:Loop gate passed"     "testZZZ2NodesSumH:Complex Loop is already bottom tested"     "testZZZ2NodesSetB:Complex Loop is already bottom tested"     "testZZZ2NodesSetH:Complex Loop is already bottom tested"     "testZZZ2NodesComplexSumB:Loop gate passed"     "testZZZ2NodesComplexSumH:Loop gate passed"     "testZZZ2NodesComplexSetB:Loop gate passed"     "testZZZ2NodesComplexSetH:Loop gate passed"     "testZZZ3NodesSumBBDirect:Loop gate passed"     "testZZZ3NodesSumBBReverse:Loop gate passed"     "testZZZ3NodesSumHHDirect:Complex Loop is already bottom tested"     "testZZZ3NodesSumHHReverse:Complex Loop is already bottom tested"     "testZZZ3NodesSumHBDirect:Loop gate passed"     "testZZZ3NodesSumHBReverse:Loop gate passed"     "testZZZ3NodesSetBBDirect:Loop gate passed"     "testZZZ3NodesSetBBReverse:Loop gate passed"     "testZZZ3NodesSetHHDirect:Complex Loop is already bottom tested"     "testZZZ3NodesSetHHReverse:Complex Loop is already bottom tested"     "testZZZ3NodesSetHBDirect:Complex Loop is already bottom tested"     "testZZZ3NodesSetHBReverse:Loop gate passed"     "testZZZ3NodesComplexSumBBDirect:Loop gate passed"     "testZZZ3NodesComplexSumBBReverse:Loop gate passed"     "testZZZ3NodesComplexSumHHDirect:Loop gate passed"     "testZZZ3NodesComplexSumHHReverse:Loop gate passed"     "testZZZ3NodesComplexSumHBDirect:Loop gate passed"     "testZZZ3NodesComplexSumHBReverse:Loop gate passed"     "testZZZ3NodesComplexSetBBDirect:Loop gate passed"     "testZZZ3NodesComplexSetBBReverse:Loop gate passed"     "testZZZ3NodesComplexSetHHDirect:Loop gate passed"     "testZZZ3NodesComplexSetHHReverse:Complex Loop is already bottom tested"     "testZZZ3NodesComplexSetHBDirect:Loop gate passed"     "testZZZ3NodesComplexSetHBReverse:Loop gate passed"     "testZZZSuper:Loop gate passed==2")
+
+# include the package's postproc
+if [ -f $packagedir/postproc_common ]; then
+    source $packagedir/postproc_common
+fi
+

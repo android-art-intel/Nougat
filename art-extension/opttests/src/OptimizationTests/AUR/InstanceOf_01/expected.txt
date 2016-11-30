@@ -1,0 +1,2 @@
+Test InstanceOf_01; Subtest test; Result: 239996
+Test InstanceOf_01; Subtest testWithGCStress; Result: 239996

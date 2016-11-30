@@ -1,0 +1,5 @@
+LoopIntLT2.test1 result: 10495080
+LoopIntLT2.test2 result: 320
+LoopIntLT2.test3 result: 640
+LoopIntLT2.test4 result: -1679809438
+LoopIntLT2.test5 result: 210055310

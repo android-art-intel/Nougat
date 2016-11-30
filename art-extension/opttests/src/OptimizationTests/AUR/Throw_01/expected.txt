@@ -1,0 +1,3 @@
+class java.lang.NullPointerException
+OptimizationTests.AUR.Throw_01.Main.test(Main.java:53)
+Test Throw_01; Subtest testWithGCStress; Result: class java.lang.NullPointerException

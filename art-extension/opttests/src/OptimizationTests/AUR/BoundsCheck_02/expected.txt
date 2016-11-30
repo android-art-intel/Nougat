@@ -1,0 +1,4 @@
+java.lang.ArrayIndexOutOfBoundsException: length=10; index=15
+OptimizationTests.AUR.BoundsCheck_02.Main.runTest(Main.java:39)
+OptimizationTests.AUR.BoundsCheck_02.Main.test(Main.java:51)
+Test BoundsCheck_02; Subtest testWithGCStress; Result: java.lang.ArrayIndexOutOfBoundsException: length=10; index=15

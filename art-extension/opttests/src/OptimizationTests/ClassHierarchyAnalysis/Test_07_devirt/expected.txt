@@ -1,0 +1,22 @@
+m1() from class B
+m1() from class B
+m1() from class B
+m1() from class B
+m1() from class B
+m1() from class B
+m1() from class B
+m1() from class B
+m1() from class B
+m1() from class B
+b.test1() = 2560
+m2() from class C
+m2() from class C
+m2() from class C
+m2() from class C
+m2() from class C
+m2() from class C
+m2() from class C
+m2() from class C
+m2() from class C
+m2() from class C
+c.test2() = 10240.0
