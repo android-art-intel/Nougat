@@ -334,6 +334,9 @@ std::unique_ptr<RuntimeParser> ParsedOptions::MakeParser(bool ignore_unrecognize
       .Define("-XX:GcProfAtStart")
           .WithValue(true)
           .IntoKey(M::GcProfAtStart)
+      .Define("-XX:EnableGcSpy")
+          .WithValue(true)
+          .IntoKey(M::EnableGcSpy)
       .Ignore({
           "-ea", "-da", "-enableassertions", "-disableassertions", "--runtime-arg", "-esa",
           "-dsa", "-enablesystemassertions", "-disablesystemassertions", "-Xrs", "-Xint:_",

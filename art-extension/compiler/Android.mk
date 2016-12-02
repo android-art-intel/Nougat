@@ -220,9 +220,9 @@ define build-libart-compiler
   ifeq ($$(art_ndebug_or_debug),ndebug)
     LOCAL_MODULE := libart-compiler
     ifeq ($$(art_static_or_shared), static)
-      LOCAL_STATIC_LIBRARIES += libart liblz4 liblzma
+      LOCAL_STATIC_LIBRARIES += libart liblz4 liblzma libgcspy
     else
-      LOCAL_SHARED_LIBRARIES += libart liblz4 liblzma
+      LOCAL_SHARED_LIBRARIES += libart liblz4 liblzma libgcspy
     endif
     ifeq ($$(art_target_or_host),target)
       LOCAL_FDO_SUPPORT := true

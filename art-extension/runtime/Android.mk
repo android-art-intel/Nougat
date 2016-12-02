@@ -243,6 +243,10 @@ LIBART_BINARY_ANALYZER_FILES := \
   binary_analyzer/binary_analyzer_x86.cc \
   binary_analyzer/disassembler.cc
 
+LIBART_COMMON_SRC_FILES += \
+  gc/gcspy/gcspy.cc \
+  gc/gcspy/space_record.cc
+
 LIBART_TARGET_LDFLAGS :=
 LIBART_HOST_LDFLAGS :=
 
@@ -555,6 +559,7 @@ endif
   LOCAL_C_INCLUDES += $$(ART_C_INCLUDES)
   LOCAL_C_INCLUDES += $(VENDOR_ART_PATH)/cmdline
   LOCAL_C_INCLUDES += $(VENDOR_ART_PATH)/sigchainlib
+  LOCAL_C_INCLUDES += $(VENDOR_ART_PATH)/gcspy/include
   LOCAL_C_INCLUDES += $(VENDOR_ART_PATH)
 
   ifeq ($$(art_static_or_shared),static)
@@ -564,6 +569,7 @@ endif
     LOCAL_STATIC_LIBRARIES += libsigchain_dummy
     LOCAL_STATIC_LIBRARIES += libbacktrace
     LOCAL_STATIC_LIBRARIES += liblz4
+    LOCAL_SHARED_LIBRARIES += libgcspy
     ifneq ($$(CAPSTONE_EXT_LIBRARY),)
       LOCAL_STATIC_LIBRARIES += libcapstone
     endif
@@ -574,6 +580,7 @@ endif
     LOCAL_SHARED_LIBRARIES += libsigchain
     LOCAL_SHARED_LIBRARIES += libbacktrace
     LOCAL_SHARED_LIBRARIES += liblz4
+    LOCAL_SHARED_LIBRARIES += libgcspy
     ifneq ($$(CAPSTONE_EXT_LIBRARY),)
       LOCAL_SHARED_LIBRARIES += libcapstone
     endif

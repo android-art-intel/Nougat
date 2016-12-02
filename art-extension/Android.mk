@@ -16,3 +16,4 @@
 # Modified by Intel Corporation
 #
 
+include $(VENDOR_ART_PATH)/gcspy/Android.mk

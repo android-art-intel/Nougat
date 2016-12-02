@@ -1053,6 +1053,8 @@ bool Runtime::Init(RuntimeArgumentMap&& runtime_options_in) {
     OatFileManager::SetCompilerFilter(filter);
   }
 
+  enable_gcspy_ = runtime_options.GetOrDefault(Opt::EnableGcSpy);
+
   XGcOption xgc_option = runtime_options.GetOrDefault(Opt::GcOption);
 
   enable_gcprofile_ = runtime_options.GetOrDefault(Opt::GcProfile);

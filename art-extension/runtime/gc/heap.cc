@@ -76,6 +76,7 @@
 #include "thread_list.h"
 #include "well_known_classes.h"
 #include "gc/gcprofiler.h"
+#include "gc/gcspy/gcspy.h"
 
 namespace art {
 
@@ -282,6 +283,10 @@ Heap::Heap(size_t initial_size,
     }
   }
   ChangeCollector(desired_collector_type_);
+  if (runtime->IsEnableGcSpy()) {
+    LOG(INFO) << "GcSpy is ENABLED";
+    gcspy::GcSpy::CreateServer(3000, collector_type_);
+  }
   live_bitmap_.reset(new accounting::HeapBitmap(this));
   mark_bitmap_.reset(new accounting::HeapBitmap(this));
   // Requested begin for the alloc space, to follow the mapped image and oat files
@@ -1125,6 +1130,10 @@ void Heap::AddSpace(space::Space* space) {
               [](const space::ContinuousSpace* a, const space::ContinuousSpace* b) {
       return a->Begin() < b->Begin();
     });
+    if (Runtime::Current()->IsEnableGcSpy()) {
+      // AddSpace may fail when no corresponding driver is installed.
+      gcspy::GcSpy::Current()->AddSpace(space);
+    }
   } else {
     CHECK(space->IsDiscontinuousSpace());
     space::DiscontinuousSpace* discontinuous_space = space->AsDiscontinuousSpace();
@@ -1175,6 +1184,9 @@ void Heap::RemoveSpace(space::Space* space) {
     auto it = std::find(continuous_spaces_.begin(), continuous_spaces_.end(), continuous_space);
     DCHECK(it != continuous_spaces_.end());
     continuous_spaces_.erase(it);
+    if (Runtime::Current()->IsEnableGcSpy()) {
+      gcspy::GcSpy::Current()->RemoveSpace(space);
+    }
   } else {
     DCHECK(space->IsDiscontinuousSpace());
     space::DiscontinuousSpace* discontinuous_space = space->AsDiscontinuousSpace();
@@ -1335,6 +1347,9 @@ Heap::~Heap() {
   STLDeleteValues(&remembered_sets_);
   STLDeleteElements(&continuous_spaces_);
   STLDeleteElements(&discontinuous_spaces_);
+  if (Runtime::Current()->IsEnableGcSpy()) {
+    gcspy::GcSpy::ShutdownServer();
+  }
   delete gc_complete_lock_;
   delete thread_flip_lock_;
   delete pending_task_lock_;
@@ -2798,6 +2813,9 @@ collector::GcType Heap::CollectGarbageInternal(collector::GcType gc_type,
       // here is full GC.
     }
   }
+  if (runtime->IsEnableGcSpy() && !runtime->IsShuttingDown(self)) {
+    gcspy::GcSpy::Current()->Send(gcspy::kStartGc);
+  }
   ScopedThreadStateChange tsc(self, kWaitingPerformingGc);
   Locks::mutator_lock_->AssertNotHeld(self);
   if (self->IsHandlingStackOverflow()) {
@@ -3053,6 +3071,11 @@ void Heap::FinishGC(Thread* self, collector::GcType gc_type) {
   running_collection_is_blocking_ = false;
   // Wake anyone who may have been waiting for the GC to complete.
   gc_complete_cond_->Broadcast(self);
+
+  Runtime *runtime = Runtime::Current();
+  if (runtime->IsEnableGcSpy() && !runtime->IsShuttingDown(self)) {
+    gcspy::GcSpy::Current()->Send(gcspy::kFinishGc);
+  }
 }
 
 void Heap::UpdateGcCountRateHistograms() {

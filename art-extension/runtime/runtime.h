@@ -698,6 +698,8 @@ class Runtime {
   }
 #endif
 
+  bool IsEnableGcSpy() const { return enable_gcspy_; }
+
  private:
   ProfilersMap& GetProfilersUnlocked() {
     return profiles_;
@@ -956,6 +958,9 @@ class Runtime {
   // Auto Fast JNI detection gate.
   bool auto_fast_detect_;
 #endif
+
+  // Whether or not run gcspy server
+  bool enable_gcspy_;
 
   DISALLOW_COPY_AND_ASSIGN(Runtime);
 };
