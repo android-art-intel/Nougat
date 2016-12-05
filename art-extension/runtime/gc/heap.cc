@@ -77,6 +77,7 @@
 #include "well_known_classes.h"
 #include "gc/gcprofiler.h"
 #include "gc/gcspy/gcspy.h"
+#include "gc/gcview/gcview_glue.h"
 
 namespace art {
 
@@ -2859,6 +2860,11 @@ collector::GcType Heap::CollectGarbageInternal(collector::GcType gc_type,
     gc_profiler = GcProfiler::GetInstance();
   }
 
+  GCviewGlue* gcview_glue = nullptr; 
+  if (Runtime::Current()->EnabledGCViewProfile()) {
+    gcview_glue = GCviewGlue::GetInstance();
+  }
+
   // TODO: Clean this up.
   if (compacting_gc) {
     DCHECK(current_allocator_ == kAllocatorTypeBumpPointer ||
@@ -2951,6 +2957,11 @@ collector::GcType Heap::CollectGarbageInternal(collector::GcType gc_type,
                                    max_allowed_footprint_, space_size,
                                    large_object_space_->GetBytesAllocated());
   }
+
+  if (Runtime::Current()->EnabledGCViewProfile()) {
+    gcview_glue->DoEvent(this, collector, collector::kGcTypeSticky, gc_cause, true);
+  }
+
   collector->Run(gc_cause, clear_soft_references || runtime->IsZygote());
   total_objects_freed_ever_ += GetCurrentGcIteration()->GetFreedObjects();
   total_bytes_freed_ever_ += GetCurrentGcIteration()->GetFreedBytes();
@@ -2980,6 +2991,9 @@ collector::GcType Heap::CollectGarbageInternal(collector::GcType gc_type,
     gc_profiler->UpdateMaxWaitForGcTimeAndBlockingTime(blocking_time, false, true);
   }
   FinishGC(self, gc_type);
+  if (Runtime::Current()->EnabledGCViewProfile()) {
+    gcview_glue->DoEvent(this, collector, collector::kGcTypeSticky, gc_cause, false);
+  }
   // Inform DDMS that a GC completed.
   Dbg::GcDidFinish();
   // Unload native libraries for class unloading. We do this after calling FinishGC to prevent
@@ -4593,6 +4607,26 @@ size_t Heap::GetThreadCount(bool paused) const {
     return 1;
   }
   return (paused ? GetParallelGCThreadCount() : GetConcGCThreadCount()) + 1;
+}
+
+void Heap::GCViewProfileSetDir(const std::string& dir) {
+  GCviewGlue *gcview_profile = GCviewGlue::GetInstance();
+  gcview_profile->SetDir(dir);
+}
+
+void Heap::GCViewProfileStart() {
+  GCviewGlue *gcview_profile = GCviewGlue::GetInstance();
+  gcview_profile->Start(this);
+}
+
+void Heap::GCViewProfileEnd() {
+  GCviewGlue *gcview_profile = GCviewGlue::GetInstance();
+  gcview_profile->Stop();
+}
+
+bool Heap::GCViewProfileRunning() {
+  GCviewGlue *gcview_profile = GCviewGlue::GetInstance();
+  return gcview_profile->IsRunning();
 }
 
 }  // namespace gc

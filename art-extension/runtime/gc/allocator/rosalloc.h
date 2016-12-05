@@ -42,6 +42,9 @@ namespace art {
 class MemMap;
 
 namespace gc {
+class GCviewGlue;
+class RosManipulator;
+
 namespace allocator {
 
 // A runs-of-slots memory allocator.
@@ -960,6 +963,8 @@ class RosAlloc {
 
  private:
   friend std::ostream& operator<<(std::ostream& os, const RosAlloc::PageMapKind& rhs);
+  friend class ::art::gc::GCviewGlue;
+  friend class ::art::gc::RosManipulator;
 
   DISALLOW_COPY_AND_ASSIGN(RosAlloc);
 };

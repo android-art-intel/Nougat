@@ -370,7 +370,7 @@ ifeq ($(HOST_OS),linux)
       ifdef SANITIZE_TARGET
         art_target_non_debug_cflags += -Wframe-larger-than=6400
       else
-        art_target_non_debug_cflags += -Wframe-larger-than=1728
+        art_target_non_debug_cflags += -Wframe-larger-than=1900
       endif
     endif
   endif

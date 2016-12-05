@@ -204,6 +204,9 @@ Runtime::Runtime()
       system_thread_group_(nullptr),
       system_class_loader_(nullptr),
       dump_gc_performance_on_shutdown_(false),
+      enable_gcview_profile_(false),
+      gcview_profile_dir_("/data/local/tmp/gcprofile"),
+      enable_gcview_profile_at_start_(false),
       enable_gcprofile_(false),
       gcprofile_dir_("/data/local/tmp/gcprofile"),
       enable_succ_alloc_profile_(false),
@@ -303,6 +306,11 @@ Runtime::~Runtime() {
     jit_->DeleteThreadPool();
     // Similarly, stop the profile saver thread before deleting the thread list.
     jit_->StopProfileSaver();
+  }
+
+  if (enable_gcview_profile_) {
+    LOG(INFO) << "GCViewProfile: stop gcview profile when destroying vm";
+    GetHeap()->GCViewProfileEnd();
   }
 
   // Make sure our internal threads are dead before we start tearing down things they're using.
@@ -802,6 +810,12 @@ void Runtime::InitNonZygoteOrPostFork(
   // this will pause the runtime, so we probably want this to come last.
   Dbg::StartJdwp();
 
+  if (enable_gcview_profile_ && enable_gcview_profile_at_start_) {
+     LOG(INFO) << "GCViewProfile: start gcview profile when fork from zygote";
+     GetHeap()->GCViewProfileEnd();
+     GetHeap()->GCViewProfileStart();
+  }
+
   if (enable_gcprofile_ && enable_gcprofile_at_start_) {
     LOG(INFO) << "GCProfile: start gc profile when fork from zygote";
     GetHeap()->GCProfileEnd(true);
@@ -1144,6 +1158,15 @@ bool Runtime::Init(RuntimeArgumentMap&& runtime_options_in) {
     enable_gcprofile_at_start_ = false;
   }
 
+  enable_gcview_profile_ = runtime_options.Exists(Opt::GCViewProfile);
+  if (enable_gcview_profile_) {
+    if (runtime_options.GetOrDefault(Opt::GCViewProfileDir).empty() != true) {
+      gcview_profile_dir_ = runtime_options.GetOrDefault(Opt::GCViewProfileDir);
+    }
+    GetHeap()->GCViewProfileSetDir(gcview_profile_dir_);
+    enable_gcview_profile_at_start_ = runtime_options.Exists(Opt::GCViewProfAtStart);
+  }
+
   BlockSignals();
   InitPlatformSignalHandlers();
 
@@ -1324,6 +1347,12 @@ bool Runtime::Init(RuntimeArgumentMap&& runtime_options_in) {
 
   // TODO: move this to just be an Trace::Start argument
   Trace::SetDefaultClockSource(runtime_options.GetOrDefault(Opt::ProfileClock));
+  // Start GCView Profiling if enable profile at start. 
+  if (enable_gcview_profile_ && enable_gcview_profile_at_start_) {
+    LOG(INFO) << "GCViewProfile: start gcview profile when runtime initializing";
+    GetHeap()->GCViewProfileEnd();
+    GetHeap()->GCViewProfileStart();
+  }
 
   // Pre-allocate an OutOfMemoryError for the double-OOME case.
   self->ThrowNewException("Ljava/lang/OutOfMemoryError;",
@@ -1584,6 +1613,8 @@ void Runtime::BlockSignals() {
   signals.Add(SIGQUIT);
   // SIGUSR1 is used to initiate a GC.
   signals.Add(SIGUSR1);
+  // SIGUSR2 is used to dump gcview profiling data. 
+  signals.Add(SIGUSR2);
   signals.Block();
 }
 

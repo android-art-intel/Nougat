@@ -61,6 +61,8 @@ namespace gc {
 class AllocRecordObjectMap;
 class ReferenceProcessor;
 class TaskProcessor;
+class GCviewGlue;
+class SummaryManipulator;
 
 namespace accounting {
   class HeapBitmap;
@@ -784,6 +786,10 @@ class Heap {
   uint64_t GetBlockingGcTime() const;
   void DumpGcCountRateHistogram(std::ostream& os) const REQUIRES(!*gc_complete_lock_);
   void DumpBlockingGcCountRateHistogram(std::ostream& os) const REQUIRES(!*gc_complete_lock_);
+  void GCViewProfileSetDir(const std::string& dir);
+  void GCViewProfileStart();
+  void GCViewProfileEnd();
+  bool GCViewProfileRunning();
 
   // Allocation tracking support
   // Callers to this function use double-checked locking to ensure safety on allocation_records_
@@ -1459,6 +1465,8 @@ class Heap {
   friend class VerifyReferenceCardVisitor;
   friend class VerifyReferenceVisitor;
   friend class VerifyObjectVisitor;
+  friend class GCviewGlue;
+  friend class SummaryManipulator;
 
   DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
 };

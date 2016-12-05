@@ -700,6 +700,10 @@ class Runtime {
 
   bool IsEnableGcSpy() const { return enable_gcspy_; }
 
+  bool EnabledGCViewProfile() {
+    return enable_gcview_profile_;
+  }
+
  private:
   ProfilersMap& GetProfilersUnlocked() {
     return profiles_;
@@ -850,6 +854,15 @@ class Runtime {
 
   // If true, then we dump the GC cumulative timings on shutdown.
   bool dump_gc_performance_on_shutdown_;
+
+  // Enable gcview profile.
+  bool enable_gcview_profile_;
+
+  // Dir path for saving gc profile data, used with setprop "-XGCViewProfileDir:filename".
+  std::string gcview_profile_dir_;
+
+  // Enabling gcview profiling at process start up. must combine with setprop "-XX:GCViewProfile". 
+  bool enable_gcview_profile_at_start_;
 
   // Enable gc profile.
   bool enable_gcprofile_;

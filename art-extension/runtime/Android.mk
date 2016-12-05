@@ -73,6 +73,13 @@ LIBART_COMMON_SRC_FILES := \
   gc/collector/partial_mark_sweep.cc \
   gc/collector/semi_space.cc \
   gc/collector/sticky_mark_sweep.cc \
+  gc/gcview/data.cc \
+  gc/gcview/gcview.cc \
+  gc/gcview/gcview_glue.cc \
+  gc/gcview/gcview_space.cc \
+  gc/gcview/mm.cc \
+  gc/gcview/manipulator.cc \
+  gc/gcview/utils.cc \
   gc/gc_cause.cc \
   gc/heap.cc \
   gc/gcprofiler.cc \
@@ -373,6 +380,16 @@ LIBART_ENUM_OPERATOR_OUT_HEADER_FILES := \
   gc/allocator/rosalloc.h \
   gc/collector_type.h \
   gc/collector/gc_type.h \
+  gc/gcview/array.h \
+  gc/gcview/data.h \
+  gc/gcview/gcview.h \
+  gc/gcview/gcview_glue.h \
+  gc/gcview/gcview_space.h \
+  gc/gcview/json.h \
+  gc/gcview/mm.h \
+  gc/gcview/manipulator.h \
+  gc/gcview/utils.h \
+  gc/gcview/vector.h \
   gc/heap.h \
   gc/gcprofiler.h \
   gc/space/region_space.h \

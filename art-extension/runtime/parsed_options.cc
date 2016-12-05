@@ -337,6 +337,13 @@ std::unique_ptr<RuntimeParser> ParsedOptions::MakeParser(bool ignore_unrecognize
       .Define("-XX:EnableGcSpy")
           .WithValue(true)
           .IntoKey(M::EnableGcSpy)
+      .Define("-XX:GCViewProfile")
+          .IntoKey(M::GCViewProfile)
+      .Define("-XGCViewProfileDir:_")
+          .WithType<std::string>()
+          .IntoKey(M::GCViewProfileDir)
+      .Define("-XX:GCViewProfAtStart")
+          .IntoKey(M::GCViewProfAtStart)
       .Ignore({
           "-ea", "-da", "-enableassertions", "-disableassertions", "--runtime-arg", "-esa",
           "-dsa", "-enablesystemassertions", "-disablesystemassertions", "-Xrs", "-Xint:_",
@@ -826,6 +833,9 @@ void ParsedOptions::Usage(const char* fmt, ...) {
   UsageMessage(stream, "  -Xjitdisableopt\n");
   UsageMessage(stream, "  -Xjitsuspendpoll\n");
   UsageMessage(stream, "  -XX:mainThreadStackSize=N\n");
+  UsageMessage(stream, "  -XX:GCViewProfile\n");
+  UsageMessage(stream, "  -XGCViewProfileDir:dirname\n");
+  UsageMessage(stream, "  -XX:GCViewProfAtStart\n");
   UsageMessage(stream, "  -XX:GcProfile\n");
   UsageMessage(stream, "  -XGcProfileDir:dirname\n");
   UsageMessage(stream, "  -XX:GcProfAlloc\n");
