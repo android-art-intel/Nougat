@@ -1,0 +1,283 @@
+Tool name
+---------
+
+TestFramework
+
+
+Description
+-----------
+
+TestFramework is a command line tool for creating and running test suites.
+The tests are assumed to be written in Java and run on Android runtime, 
+which used to be dalvik and currently is ART.
+
+
+Files
+-----
+
+etc/	# Contains test harness default scripts called for execution from run-tests:
+    default-build
+    default-diffexp
+    default-run
+    diffexpected
+    host-run-test-jar
+    push-and-run-test-jar 
+build		- a bash script for building the tests;
+define		- a bash script containing definitions of environmental variables;
+                  specifically, TESTSUITE_NAME used in tests directory structure (see below) is defined here;
+run-tests 	- a bash script for starting the tests; implements main functionality of the test harness;
+src/		- the tests source code directory.
+
+
+Tests source code directory structure
+-------------------------------------
+
+It is supposed that the structure of tests directories is as follows:
+
+src/
+    TESTSUITE_NAME/
+        test_package_dir_1/
+            test_dir_001/
+                Main.java
+                optional *.java files
+                [build]
+                [run]
+                [expected.txt]
+                [diffexp]
+                [add_art_args]
+                [testargs]
+                [postproc]
+            test_dir_002/
+                ......
+            [build]
+            [run]
+            [add_art_args]
+            [diffexp]
+            [postproc]
+            [postproc_common]
+        test_package_dir_2/
+        .....
+
+
+The Main.java file is a class whose "main" method is called for executing a test.
+The test directory can contain some more Java files if needed.
+All Java files in the test directory will be compiled in a single dex file (called Main.jar).
+
+Each test package or test directory can have the following optional files:
+
+  - build, run or diffexp bash scripts.
+
+    The build script provides means for building a test or all tests in a test package.
+    The run script is intended for executing a test or all tests in a test package.
+      Please find more information on how to build and run the tests below.
+    The diffexp script is called after execution of a test to verify its pass/fail status.
+    The script should return 0 if the test passes.
+
+  - expected.txt
+    This text file can be defined on the test level only.
+    The file should contain the expected output of the test.
+    If the file is not provided, you should implement the "diffexp" script to verify the test's pass/fail status.
+
+  - testargs
+    This text file can be defined on the test level only.
+    The file should contain a string value that will be passed as arguments to the test's Main class.
+
+  - add_art_args
+    The purpose of this text file is to set some runtime options specific for this test or test package.
+    These options will be added to the end of the VM_ARGS value (see below)
+    in the test execution command line.
+
+  - a post-processing script named "postproc" that accepts the logcat file as a parameter.
+    The purpose of this script is to check some information in logcat immediately after the test completes.
+    On the package level, along with the "postproc" script, one can implement a post-processing script 
+    named "postproc_common". This script can implement some functionality common for some or all tests in a package.
+    It will not be executed by the test harness. It will be copied to the bin directory during the building process though.
+    Some test's "postproc" script can call "postproc_common" and then do some test specific checks.
+
+    The test level build, run, diffexp, or postproc scripts override the package level scripts,
+    e.g. if there are "run" scripts in both test package and test directories,
+    the "run" script from the test directory will be called.
+
+    If neither the test package directory nor the test directory contains build, run or diffexp scripts,
+    then the default-build, default-run and default-diffexp scripts from the etc/ directory are called.
+
+How to build the tests
+-----------------------
+
+The following values defined in the "define" script can be changed before building:
+
+JAVA_HOME pointing to JDK root directory. 
+    The "java" and "javac" commands will be called from $JAVA_HOME/bin.
+ANDROID_SDK_ROOT pointing to Android SDK root directory.
+    Actually, "adb" and "dx" from $ANDROID_SDK_ROOT/platform-tools are only needed.
+ANDROID_JAR pointing to the android.jar file.
+
+Example:
+
+export JAVA_HOME=<path_to_java_home_dir>
+
+Use the "build" script for building the tests:
+
+./build
+
+To see script usage information, run
+
+./build -h
+   The script compiles or clean test packages.
+   Usage: build [-h] [ MODE=..., PACKAGELIST=..., DEPLOY_DIR=..., VM_RUNTIME=[DVM|ART] ]
+
+   -h: prints this message
+   -v: set verbose mode 'on', default mode is 'off'
+
+   MODE=[compile|clean], default MODE is 'compile'
+   PACKAGELIST="<list of packages to be compiled or cleaned>" e.g. PACKAGELIST="ShortMethodsInlining Loop"
+                         default PACKAGELIST is 'all'
+   DEPLOY_DIR=<path to a directory with test binaries>
+                         default DEPLOY_DIR is <current directory>
+   VM_RUNTIME=[dalvik|ART]
+                         default VM_RUNTIME=ART
+
+If the list of arguments is empty, the script will build all tests in the "src" directory 
+and write all files needed for tests execution to the <current directory>/bin directory.
+If a test package directory or a test directory contains the "build" script, 
+it will be called for building that test package or test.
+
+Each test directory in bin will contain a dex file called Main.jar, run and diffexp scripts 
+and can contain the expected.txt file. 
+
+Example:
+
+If there is a subtree $TESTSUITE_NAME/test_package_1 in the src directory,
+then you can build all the tests in this directory as follows:
+
+./build PACKAGELIST=test_package_1 VM_RUNTIME=ART
+
+
+How to run the tests
+--------------------
+
+Use the run-tests script to run all tests in the test suite:
+
+./run-tests
+
+To run the tests with post-processing switched on, use -p option:
+
+./run-tests -p
+
+
+Test suite parameters
+---------------------
+
+To see the list of possible parameters, start the run-tests script with the -h option:
+
+$ ./run-tests -h
+   The script runs one or more tests.
+   Usage: run-tests [-hvprd] [PACKAGELIST=... TESTLIST=... TESTS=... TEST_LIST=... VM_ARGS=... RESULTS_DIR=... TIMEOUT=... EXCLUDE=... ANDROID_BUILD_TOP=...  RERUNS=... STRESS_RUNNER=...]
+
+   -h: prints this message
+   -v: set verbose mode 'on', default mode is 'off'
+   -p: set postprocessing 'on' (it means that logcat will be checked according to the postproc script), default is 'off'
+   -r: set regular run 'on' (it means that logcat will be removed for all passed tests), default is 'off' (useful for creating and debugging tests)
+   -d: run the tests using the host virtual machine; ANDROID_BUILD_TOP pointing to the build tree should be defined
+
+   PACKAGELIST="<list of packages to be run (or regular expressions corresponding to package names) >", e.g. PACKAGELIST="ShortMethodsInlining Loop"
+                         default PACKAGELIST is "all"
+                         deprecated: use TESTS or TEST_LIST
+   If only one package is set, TESTLIST can contain the list of tests to be run.
+
+   TESTLIST="<list of tests (or regular expressions corresponding to test names) to be run in defined package>",
+            e.g. TESTLIST="InvokeDirectRange_a_007 InvokeDirectRange_a_008"
+                         default TESTLIST is "all"
+                         deprecated: use TESTS or TEST_LIST
+
+   TESTS="a list of test names separated with spaces"
+                        test name should be written as <package_name>/test_name>, e.g. CopyPropagation/Mixed_02,
+                        or as <package_name>, e.g. as CopyPropagation; in this case all tests from CopyPropagation package are executed.
+                        default: n/a.
+                        If the value is not defined, then the list of tests is taken from TEST_LIST.
+
+   TEST_LIST=<the name of a file containing the list of tests or test packages>
+                         default name is <root_dir>/testlist
+                         If the file does not exist, then all tests will be executed
+
+   VM_ARGS="<list of dalvikvm arguments>" e.g. VM_ARGS="-Xint:jit -Xjitverbose"
+                         default VM_ARGS=""
+   VM_ARGS_GO_OVER="<a list of dalvikvm options that should be added to the dalvikvm command line one by one>"
+                         so that all the tests will be executed a few times
+                         with one of the options added to VM_ARGS list each time.
+                         default list for VTuneSupportTests is -Xjitvtuneinfo:jit
+                         default value for other test suites is empty
+   RESULTS_DIR=<path to directory with test results>
+                         default RESULTS_DIR is <current directory>/results
+   TIMEOUT=<N>, where N is the number of seconds to wait before terminating the test
+                         default N is 60
+   EXCLUDE=<path to exclude list>
+                         default EXCLUDE is <current directory>/exclude
+   ANDROID_BUILD_TOP=<path to the build tree>
+                         default is not defined
+   ANDROID_LOG_TAGS=<host mode verbosity level>
+                         default ANDROID_LOG_TAGS=":D"
+   RERUNS=<N>, where N is the number test reruns in case of post-processing failure, which could be due to jitting is not 100% garanteed
+               Aimed to reduce false alarms during patch testing
+   STRESS_RUNNER=[on|off] defines stressed mode of run, for which StressRunner is used
+
+
+StressRunner is located at https://github.com/android-art-intel/Nougat/tree/master/art-extension/tools/StressRunner
+
+
+Example:
+
+./run-tests VM_ARGS="-Xcompiler-option --compiler-filter=speed" RESULTS_DIR=`pwd`/results_WW08
+
+
+How to run a subset of the tests
+--------------------------------
+
+The test name in this framework is defined as test_package_dir/test_dir.
+
+You can run a subset of tests in two ways:
+
+1. Use the TESTS parameter to define a subset of tests:
+
+./run-tests TESTS="a list of test names or test packages separated with spaces"
+
+Example: Run all tests from the NonTemporalMove package and two tests from other packages: 
+
+./run-tests TESTS="NonTemporalMove LoopPeeling/Array_01 FormBottomLoops/DevTest_01"
+
+You can also use wildcards in test/packages names, e.g.:
+TESTS="Loop*"
+
+2. Use the TEST_LIST parameter to define a file containing the names of tests:
+
+./run-tests TEST_LIST=`pwd`/mytestlist
+
+
+How to run the tests in host mode
+----------------------------------
+
+1. Set ANDROID_BUILD_TOP to the path to the "out" directory of the host build:
+export ANDROID_BUILD_TOP=<path_to_out_dir>
+
+2. Run the tests with HOST_MODE=on:
+
+HOST_MODE=on ./run-tests
+
+
+Test results
+------------
+
+1. The output of the run-tests script is printed in stdout.
+
+2. Test results are collected in the $RESULTS_DIR directory, which is `pwd`/'results' by default. 
+The result directory for each test contains the following files:
+
+logcat		- system log collected during execution of the test
+output.txt	- output of the test
+testlog.txt	- the test execution command line and optionally some additional info, e.g. post-processing output.
+
+3. The summary of the test run in a special format is generated in the $RESULTS_DIR/test-results.csv file.
+This file is used in automated test results processing when the tests are run with the Angara tool. 
+
+To save disk space, you can pass the -r option to the run-tests script (see more information with ./run-tests -h). 
+In this case, the logcat file will be saved only if the test fails.
