@@ -64,7 +64,8 @@ static constexpr bool kIsTargetBuild = false;
 static constexpr bool kMovingCollector = true;
 static constexpr bool kMarkCompactSupport = false && kMovingCollector;
 // True if we allow moving classes.
-static constexpr bool kMovingClasses = !kMarkCompactSupport;
+// We disable moving classes because guarded devirtualization suffer it.
+static constexpr bool kMovingClasses = false && !kMarkCompactSupport;
 
 // If true, the quick compiler embeds class pointers in the compiled
 // code, if possible.
@@ -119,7 +120,7 @@ static constexpr bool kUseTlab = false;
 // Reuse TLAB as PLAB since this is for STW GC.
 static constexpr bool kUsePlab = kUseTlab;
 static constexpr size_t kDefaultPLABSize = 64 * KB;
-static constexpr size_t kMaxGcParalelTaskSize = 1024;
+static constexpr size_t kMaxGcParallelCopyTaskSize = 256;
 
 // Kinds of tracing clocks.
 enum class TraceClockSource {

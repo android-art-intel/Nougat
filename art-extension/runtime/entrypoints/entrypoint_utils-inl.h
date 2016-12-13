@@ -488,6 +488,7 @@ inline ArtMethod* FindMethodFromCode(uint32_t method_idx, mirror::Object** this_
       return resolved_method;
     case kVirtual: {
       mirror::Class* klass = (*this_object)->GetClass();
+      DCHECK(klass);
       uint16_t vtable_index = resolved_method->GetMethodIndex();
       if (access_check &&
           (!klass->HasVTable() ||

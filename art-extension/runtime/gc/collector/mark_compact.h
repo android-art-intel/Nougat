@@ -190,7 +190,7 @@ class MarkCompact : public GarbageCollector {
       REQUIRES(Locks::mutator_lock_);
 
   // Revoke all the thread-local buffers.
-  void RevokeAllThreadLocalBuffers();
+  void RevokeAllThreadLocalBuffers() SHARED_REQUIRES(Locks::mutator_lock_);
 
   accounting::ObjectStack* mark_stack_;
 

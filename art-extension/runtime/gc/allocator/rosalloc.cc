@@ -738,8 +738,12 @@ void* RosAlloc::AllocFromRun(Thread* self, size_t size, size_t* bytes_allocated,
           self->SetRosAllocRun(idx, dedicated_full_run_);
           return nullptr;
         } else {
-          DCHECK(non_full_runs_[idx].find(thread_local_run) == non_full_runs_[idx].end());
-          DCHECK(full_runs_[idx].find(thread_local_run) == full_runs_[idx].end());
+          if (kIsDebugBuild) {
+            // Need the lock to prevent race conditions.
+            MutexLock mu(self, *size_bracket_locks_[idx]);
+            CHECK(non_full_runs_[idx].find(thread_local_run) == non_full_runs_[idx].end());
+            CHECK(full_runs_[idx].find(thread_local_run) == full_runs_[idx].end());
+          }
           thread_local_run->SetIsThreadLocal(true);
           self->SetRosAllocRun(idx, thread_local_run);
         }

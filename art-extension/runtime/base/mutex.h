@@ -79,7 +79,6 @@ enum LockLevel {
   kReferenceProcessorLock,
   kJitDebugInterfaceLock,
   kAllocSpaceLock,
-  kBumpPointerSpaceBlockLock,
   kArenaPoolLock,
   kDexFileMethodInlinerLock,
   kDexFileToMethodInlinerMapLock,

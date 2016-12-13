@@ -2122,7 +2122,6 @@ void ClassLinker::VisitClassesWithoutClassesLock(ClassVisitor* visitor) {
   // is avoiding duplicates.
   Thread* const self = Thread::Current();
   if (!kMovingClasses) {
-    ScopedAssertNoThreadSuspension nts(self, __FUNCTION__);
     GetClassesInToVector accumulator;
     VisitClasses(&accumulator);
     for (mirror::Class* klass : accumulator.classes_) {

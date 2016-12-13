@@ -56,6 +56,8 @@ typedef AtomicStack<mirror::Object> ObjectStack;
 
 namespace collector {
 
+class ParallelForwardTask;
+
 class MarkSweep : public GarbageCollector {
  public:
   MarkSweep(Heap* heap, bool is_concurrent, bool is_copying = false,
@@ -333,13 +335,9 @@ class MarkSweep : public GarbageCollector {
   void RevokeAllThreadLocalAllocationStacks(Thread* self) NO_THREAD_SAFETY_ANALYSIS;
 
   // Revoke all the thread-local buffers.
-  void RevokeAllThreadLocalBuffers();
+  void RevokeAllThreadLocalBuffers() SHARED_REQUIRES(Locks::mutator_lock_);
 
   // Added for copying between two bump pointer spaces.
-  void ForwardObjects()
-      REQUIRES(Locks::heap_bitmap_lock_)
-      REQUIRES(Locks::mutator_lock_);
-
   void ForwardObjectsParallel()
       REQUIRES(Locks::heap_bitmap_lock_)
       REQUIRES(Locks::mutator_lock_);
@@ -356,17 +354,23 @@ class MarkSweep : public GarbageCollector {
       SHARED_REQUIRES(Locks::heap_bitmap_lock_)
       REQUIRES(Locks::mutator_lock_);
 
-  uint8_t* ForwardObjectParallelAllocBuffer(Thread* self,
-                                            size_t buffer_size,
-                                            size_t count)
+  void AllocTlabInToBps(Thread* self, size_t buffer_size)
       SHARED_REQUIRES(Locks::heap_bitmap_lock_)
       REQUIRES(Locks::mutator_lock_);
 
-  bool ForwardObjectParallelPromo(Thread* self, mirror::Object* obj, size_t& req_space_size)
+  void RevokeTlabFromToBps(Thread* self)
       SHARED_REQUIRES(Locks::heap_bitmap_lock_)
       REQUIRES(Locks::mutator_lock_);
 
-  uint8_t* ForwardObjectParallelToBuffer(uint8_t* buffer, mirror::Object* obj)
+  size_t PromoteObjectParallel(Thread* self,
+                               mirror::Object* obj,
+                               ParallelForwardTask* task)
+      SHARED_REQUIRES(Locks::heap_bitmap_lock_)
+      REQUIRES(Locks::mutator_lock_);
+
+  void ForwardObjectToTlabParallel(Thread* self,
+                                   mirror::Object* obj,
+                                   ParallelForwardTask* task)
       SHARED_REQUIRES(Locks::heap_bitmap_lock_)
       REQUIRES(Locks::mutator_lock_);
 
@@ -401,19 +405,20 @@ class MarkSweep : public GarbageCollector {
   // The bump pointer in To bump pointer space where the next forwarding address will be.
   uint8_t* bump_pointer_;
   // How many objects and bytes we moved. Used for accounting.
-  size_t bytes_moved_;
-  size_t objects_moved_;
-  size_t bytes_promoted_;
+  Atomic<size_t> bytes_moved_;
+  Atomic<size_t> objects_moved_;
+  Atomic<size_t> bytes_promoted_;
   // The objects promoted to ros will be rounded as bracket size.
-  size_t bytes_adjusted_;
+  Atomic<size_t> bytes_adjusted_;
   // How many bytes we avoided dirtying.
-  size_t saved_bytes_;
+  Atomic<size_t> saved_bytes_;
   Thread* self_;
 
   // Bitmap which describes which objects we have to move, need to do / 2 so that we can handle
   // objects which are only 8 bytes.
   std::unique_ptr<accounting::ContinuousSpaceBitmap> objects_before_forwarding_ = nullptr;
   std::unique_ptr<accounting::ContinuousSpaceBitmap> objects_after_forwarding_ = nullptr;
+  std::unique_ptr<accounting::ContinuousSpaceBitmap> objects_for_to_bsp_ = nullptr;
   // The space which we are promoting into.
   space::ContinuousMemMapAllocSpace* promo_dest_space_;
   accounting::AgingTable* from_age_table_;
@@ -423,7 +428,6 @@ class MarkSweep : public GarbageCollector {
   accounting::HeapBitmap* mark_bitmap_;
 
   accounting::ObjectStack* mark_stack_;
-  std::unique_ptr<accounting::ObjectStack> copy_candidate_stack_;
 
   // Every object inside the immune spaces is assumed to be marked. Immune spaces that aren't in the
   // immune region are handled by the normal marking logic.
@@ -487,6 +491,8 @@ class MarkSweep : public GarbageCollector {
   friend class VerifyRootVisitor;
 
   friend class ForwardObjectsVisitor;
+  friend class ParallelPromoteObjectsVisitor;
+  friend class ParallelCopyObjectsVisitor;
   friend class CountLiveObjectsVisitor;
   friend class ParallelForwardTask;
   friend class RecursiveUpdateReferenceTask;

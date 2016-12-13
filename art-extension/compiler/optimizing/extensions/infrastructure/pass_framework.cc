@@ -21,6 +21,7 @@
 #include "base/timing_logger.h"
 #include "bb_simplifier.h"
 #include "code_generator.h"
+#include "commutative_trees_flipper.h"
 #include "constant_calculation_sinking.h"
 #include "constant_folding_x86.h"
 #include "devirtualization.h"
@@ -115,6 +116,7 @@ static HCustomPassPlacement kPassCustomPlacement[] = {
   { "bb_simplifier", "remove_unused_loops", kPassInsertBefore },
   { "aur", "bb_simplifier", kPassInsertBefore },
   { "phi_cleanup_after_aur", "aur", kPassInsertAfter },
+  { "commutative_trees_flipper", "dead_code_elimination_final", kPassInsertAfter },
   { "abi_transition_helper", "", kPassAppend },
 };
 
@@ -399,6 +401,8 @@ void RunOptimizationsX86(HGraph* graph,
   HAbiTransitionHelper* abi_helper = new (arena) HAbiTransitionHelper(graph, driver, stats);
   HOsrGraphRebuilder* osr_graph_rebuilder = new (arena) HOsrGraphRebuilder(graph, stats);
   HBBSimplifier* bb_simplifier = new (arena) HBBSimplifier(graph, stats);
+  HCommutativeTreesFlipper* commutative_trees_flipper =
+      new (arena) HCommutativeTreesFlipper(graph, stats);
 
   HOptimization_X86* opt_array[] = {
     devirtualization,
@@ -428,6 +432,7 @@ void RunOptimizationsX86(HGraph* graph,
     bb_simplifier,
     aur,
     phi_cleanup_after_aur,
+    commutative_trees_flipper,
     abi_helper,
   };
 

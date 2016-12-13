@@ -565,9 +565,10 @@ class Heap {
   // Deflate monitors, ... and trim the spaces.
   void Trim(Thread* self) REQUIRES(!*gc_complete_lock_);
 
-  void RevokeThreadLocalBuffers(Thread* thread, bool record_free = true);
+  void RevokeThreadLocalBuffers(Thread* thread, bool record_free = true)
+      SHARED_REQUIRES(Locks::mutator_lock_);
   void RevokeRosAllocThreadLocalBuffers(Thread* thread);
-  void RevokeAllThreadLocalBuffers(bool record_free = true);
+  void RevokeAllThreadLocalBuffers(bool record_free = true) SHARED_REQUIRES(Locks::mutator_lock_);
   void AssertAllThreadLocalBuffersAreRevoked();
   void AssertThreadLocalBuffersAreRevoked(Thread* thread);
   void AssertAllBumpPointerSpaceThreadLocalBuffersAreRevoked();

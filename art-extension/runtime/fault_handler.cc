@@ -369,7 +369,12 @@ bool FaultManager::IsInGeneratedCode(siginfo_t* siginfo, void* context, bool che
     return false;
   }
 
-  const OatQuickMethodHeader* method_header = method_obj->GetOatQuickMethodHeader(return_pc);
+  const OatQuickMethodHeader* method_header = method_obj->GetOatQuickMethodHeader(return_pc, true);
+
+  if (method_header == nullptr) {
+    VLOG(signals) << "no oat header";
+    return false;
+  }
 
   // We can be certain that this is a method now.  Check if we have a GC map
   // at the return PC address.

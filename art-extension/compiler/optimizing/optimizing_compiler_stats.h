@@ -109,6 +109,7 @@ enum MethodCompilationStat {
   kIntelCHATwoOrMoreTargets,
   kIntelBranchSimplified,
   kIntelBranchConditionDeleted,
+  kIntelCommutativeOperationFlipped,
   kLastStat
 };
 
@@ -235,6 +236,7 @@ class OptimizingCompilerStats {
       case kIntelCHATwoOrMoreTargets: return "kIntelCHATwoOrMoreTargets";
       case kIntelBranchSimplified: return "kIntelBranchSimplified";
       case kIntelBranchConditionDeleted: return "kIntelBranchConditionDeleted";
+      case kIntelCommutativeOperationFlipped: return "kIntelCommutativeOperationFlipped";
       default: LOG(FATAL) << "invalid stat";
     }
     return "OptStat#" + name;

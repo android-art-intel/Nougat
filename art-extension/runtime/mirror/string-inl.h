@@ -43,10 +43,10 @@ class SetStringCountVisitor {
   explicit SetStringCountVisitor(int32_t count) : count_(count) {
   }
 
-  void operator()(Object* obj, size_t usable_size ATTRIBUTE_UNUSED) const
+  void operator()(Object** obj, size_t usable_size ATTRIBUTE_UNUSED) const
       SHARED_REQUIRES(Locks::mutator_lock_) {
     // Avoid AsString as object is not yet in live bitmap or allocation stack.
-    String* string = down_cast<String*>(obj);
+    String* string = down_cast<String*>(*obj);
     string->SetCount(count_);
   }
 
@@ -62,10 +62,10 @@ class SetStringCountAndBytesVisitor {
       : count_(count), src_array_(src_array), offset_(offset), high_byte_(high_byte) {
   }
 
-  void operator()(Object* obj, size_t usable_size ATTRIBUTE_UNUSED) const
+  void operator()(Object** obj, size_t usable_size ATTRIBUTE_UNUSED) const
       SHARED_REQUIRES(Locks::mutator_lock_) {
     // Avoid AsString as object is not yet in live bitmap or allocation stack.
-    String* string = down_cast<String*>(obj);
+    String* string = down_cast<String*>(*obj);
     string->SetCount(count_);
     uint16_t* value = string->GetValue();
     const uint8_t* const src = reinterpret_cast<uint8_t*>(src_array_->GetData()) + offset_;
@@ -89,10 +89,10 @@ class SetStringCountAndValueVisitorFromCharArray {
     count_(count), src_array_(src_array), offset_(offset) {
   }
 
-  void operator()(Object* obj, size_t usable_size ATTRIBUTE_UNUSED) const
+  void operator()(Object** obj, size_t usable_size ATTRIBUTE_UNUSED) const
       SHARED_REQUIRES(Locks::mutator_lock_) {
     // Avoid AsString as object is not yet in live bitmap or allocation stack.
-    String* string = down_cast<String*>(obj);
+    String* string = down_cast<String*>(*obj);
     string->SetCount(count_);
     const uint16_t* const src = src_array_->GetData() + offset_;
     memcpy(string->GetValue(), src, count_ * sizeof(uint16_t));
@@ -112,10 +112,10 @@ class SetStringCountAndValueVisitorFromString {
     count_(count), src_string_(src_string), offset_(offset) {
   }
 
-  void operator()(Object* obj, size_t usable_size ATTRIBUTE_UNUSED) const
+  void operator()(Object** obj, size_t usable_size ATTRIBUTE_UNUSED) const
       SHARED_REQUIRES(Locks::mutator_lock_) {
     // Avoid AsString as object is not yet in live bitmap or allocation stack.
-    String* string = down_cast<String*>(obj);
+    String* string = down_cast<String*>(*obj);
     string->SetCount(count_);
     const uint16_t* const src = src_string_->GetValue() + offset_;
     memcpy(string->GetValue(), src, count_ * sizeof(uint16_t));

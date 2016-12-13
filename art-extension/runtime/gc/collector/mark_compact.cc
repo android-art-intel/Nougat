@@ -386,8 +386,8 @@ void MarkCompact::UpdateReferences() {
       }
     }
   }
-  CHECK(!kMovingClasses)
-      << "Didn't update large object classes since they are assumed to not move.";
+  // Didn't update large object classes since they are assumed to not move.
+  CHECK(!kMovingClasses);
   // Update the system weaks, these should already have been swept.
   runtime->SweepSystemWeaks(this);
   // Update the objects in the bump pointer space last, these objects don't have a bitmap.

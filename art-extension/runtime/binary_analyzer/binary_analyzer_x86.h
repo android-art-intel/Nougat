@@ -139,9 +139,10 @@ class MachineInstruction {
  */
 class MachineBlock {
  public:
-  explicit MachineBlock(MachineBlock* pred_bb)
+  explicit MachineBlock(MachineBlock* pred_bb, const uint8_t* function_start_addr)
       : num_of_instrs_(0),
         is_dummy_(false) {
+    function_start_addr_ = function_start_addr;
     if (pred_bb != nullptr) {
       AddPredBBlock(pred_bb);
       pred_bb->AddSuccBBlock(this);
@@ -170,6 +171,9 @@ class MachineBlock {
    */
   void SetStartAddr(const uint8_t* start) {
     start_addr_ = start;
+    if (function_start_addr_ == nullptr) {
+      function_start_addr_ = start; // Probably we are the first in CFG.
+    }
   }
 
   /**
@@ -194,6 +198,22 @@ class MachineBlock {
    */
   const uint8_t* GetEndAddr() const {
     return end_addr_;
+  }
+
+  /**
+  * @param start - address of the first instruction of the function which this Basic Block belongs.
+   * @brief Set start of the function which this Basic Block belongs.
+   */
+  void SetFunctionStartAddr(const uint8_t* start) {
+    function_start_addr_ = start;
+  }
+
+  /*
+   * @brief Get start of the function which this Basic Block belongs.
+   * @return Address of the first instruction of this function.
+   */
+  const uint8_t* GetFunctionStartAddr() const {
+    return function_start_addr_;
   }
 
   /**
@@ -341,6 +361,7 @@ class MachineBlock {
 
  private:
   uint32_t id_;
+  const uint8_t* function_start_addr_;
   const uint8_t* start_addr_;
   const uint8_t* end_addr_;
   uint32_t num_of_instrs_;
@@ -358,19 +379,57 @@ struct BackLogDs {
   MachineBlock* pred_bb;
   const uint8_t* ptr;
   MachineBlock* succ_bb;
+  const uint8_t* function_start;
+  bool is_function_start;
   uint32_t call_depth;
 };
 
 /**
- * The CallInstrDs Data Structure is needed to Split the Basic Block that contains
- * a call into two - one that ends at the call site & it then branches to the call site.
- * Upon return, it connects to the next instruction after the call.
+ * Call graph used to detect recursion since we disabled detection of cycles
+ * on CFG level (it was replaced with heuristic which cannot detect recursion).
  */
-struct CallInstrDs {
-  MachineBlock* bb_to_be_split;
-  MachineBlock* link_bb;
-  uint8_t* end;
-  uint8_t* start;
+class CallGraph {
+  struct CallEntry;
+ public:
+  CallGraph(CallGraph&& other) = default;
+  CallGraph& operator=(CallGraph&& other) = default;
+
+  static std::unique_ptr<CallGraph> CreateNew() {
+    return std::unique_ptr<CallGraph>(new CallGraph);
+  }
+
+  static bool HasCycles(std::unique_ptr<CallGraph> graph);
+
+  void AddCall(const uint8_t* caller, const uint8_t* callee);
+
+ private:
+  enum class NodeState {
+    kNotVisited,     // Not visited node.
+    kInCurrentPath,  // Already visited during current sub-path.
+    kAlreadyChecked, // Node from checked subgraph.
+  };
+
+  struct CallEntry {
+    CallEntry(const uint8_t* call_entry_address)
+        : call_entry_addr(call_entry_address) {}
+
+    void AddCallee(CallEntry* callee) {
+      callees.insert(callee);
+    }
+
+    const uint8_t* const call_entry_addr;
+    std::unordered_set<CallEntry*> callees;
+    NodeState state = NodeState::kNotVisited;
+  };
+
+  DISALLOW_COPY_AND_ASSIGN(CallGraph);
+  CallGraph() = default;
+
+  bool SubgraphCheckCycles(CallEntry* node);
+  CallEntry* GetOrAddCallEntry(const uint8_t* entry_start_address);
+
+  CallEntry* root = nullptr;
+  std::unordered_map<const uint8_t*, std::unique_ptr<CallEntry>> entries;
 };
 
 enum class AnalysisResult {
@@ -533,7 +592,7 @@ class CFGraph {
    * @param predecessor_bblock - Predecessor Basic Block.
    * @return the created Basic Block.
    */
-  MachineBlock* CreateBBlock(MachineBlock* predecessor_bblock);
+  MachineBlock* CreateBBlock(MachineBlock* predecessor_bblock, const uint8_t* function_start);
 
   /**
    * @brief Update the Predecessors & successors caused by backlog due
@@ -584,12 +643,14 @@ class CFGraph {
    * @param prev_bblock - Predecessor Basic Block.
    * @param succ_bblock - Successor Basic Block.
    * @param backlog - List of backlog entries.
+   * @param is_function_start - True if it is the first instruction in function otherwise false.
    * @return true if analyzed already; false otherwise.
    */
   bool IsVisited(const uint8_t* addr,
                  MachineBlock* prev_bblock,
                  MachineBlock* succ_bblock,
-                 std::vector<BackLogDs*>* backlog);
+                 std::vector<BackLogDs*>* backlog,
+                 const bool is_function_start);
 
   /**
    * @brief prints the CFG in human readable/dot format to logcat.

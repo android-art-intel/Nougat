@@ -245,7 +245,7 @@ class SemiSpace : public GarbageCollector {
   inline bool IsMarkedParallel(mirror::Object* obj)
       SHARED_REQUIRES(Locks::mutator_lock_, Locks::heap_bitmap_lock_);
   // Revoke all the thread-local buffers.
-  void RevokeAllThreadLocalBuffers();
+  void RevokeAllThreadLocalBuffers() SHARED_REQUIRES(Locks::mutator_lock_);
   // Get thread count for parallel copy.
   size_t GetThreadCount() const;
 

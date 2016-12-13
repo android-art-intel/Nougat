@@ -41,12 +41,12 @@ class SpaceTest : public Super {
 
   void AddSpace(ContinuousSpace* space, bool revoke = true) {
     Heap* heap = Runtime::Current()->GetHeap();
-    if (revoke) {
-      heap->RevokeAllThreadLocalBuffers();
-    }
     {
       ScopedThreadStateChange sts(Thread::Current(), kSuspended);
       ScopedSuspendAll ssa("Add image space");
+      if (revoke) {
+        heap->RevokeAllThreadLocalBuffers();
+      }
       heap->AddSpace(space);
     }
     heap->SetSpaceAsDefault(space);

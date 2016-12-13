@@ -101,6 +101,9 @@ class HConstantCalculationSinking : public HOptimization_X86 {
 
   // This is 65 because after 65 iterations, we will have overflowed in 64 bits.
   static constexpr int64_t kMaximumEvaluationIterations = 65;
+
+  // For floating point, we have to model calculations, so the limit is higher.
+  static constexpr int64_t kMaximumEvaluationIterationsForFP = 1025;
 };
 
 }  // namespace art

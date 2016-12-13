@@ -335,7 +335,7 @@ bool HConstantCalculationSinking::EvaluateFloatOperation(
    *     float mode.
    * At the end, we check if it was deemed safe.
    */
-  int64_t max = kMaximumEvaluationIterations;
+  int64_t max = kMaximumEvaluationIterationsForFP;
 
   // Set the right number of iterations.
   max = (max > iterations) ? iterations : max;

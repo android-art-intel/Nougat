@@ -90,7 +90,10 @@ inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
     }
     bytes_allocated = byte_count;
     usable_size = bytes_allocated;
-    pre_fence_visitor(obj, usable_size);
+    if (AllocatorHasAllocationStack(allocator)) {
+      PushOnAllocationStack(self, &obj);
+    }
+    pre_fence_visitor(&obj, usable_size);
     QuasiAtomic::ThreadFenceForConstructor();
   } else if (!kInstrumented && allocator == kAllocatorTypeRosAlloc &&
              (obj = rosalloc_space_->AllocThreadLocal(self, byte_count, &bytes_allocated)) &&
@@ -104,7 +107,10 @@ inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
       obj->AssertReadBarrierPointer();
     }
     usable_size = bytes_allocated;
-    pre_fence_visitor(obj, usable_size);
+    if (AllocatorHasAllocationStack(allocator)) {
+      PushOnAllocationStack(self, &obj);
+    }
+    pre_fence_visitor(&obj, usable_size);
     QuasiAtomic::ThreadFenceForConstructor();
   } else {
     // bytes allocated that takes bulk thread-local buffer allocations into account.
@@ -164,7 +170,10 @@ inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
       // space (besides promotions) under the SS/GSS collector.
       WriteBarrierField(obj, mirror::Object::ClassOffset(), klass);
     }
-    pre_fence_visitor(obj, usable_size);
+    if (AllocatorHasAllocationStack(allocator)) {
+      PushOnAllocationStack(self, &obj);
+    }
+    pre_fence_visitor(&obj, usable_size);
     QuasiAtomic::ThreadFenceForConstructor();
     new_num_bytes_allocated = static_cast<size_t>(
         num_bytes_allocated_.FetchAndAddRelaxed(bytes_tl_bulk_allocated)) + bytes_tl_bulk_allocated;
@@ -200,9 +209,6 @@ inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
     }
   } else {
     DCHECK(!IsAllocTrackingEnabled());
-  }
-  if (AllocatorHasAllocationStack(allocator)) {
-    PushOnAllocationStack(self, &obj);
   }
   if (kInstrumented) {
     if (gc_stress_mode_) {
@@ -267,12 +273,8 @@ inline mirror::Object* Heap::TryToAllocate(Thread* self,
     case kAllocatorTypeBumpPointer: {
       DCHECK(bump_pointer_space_ != nullptr);
       alloc_size = RoundUp(alloc_size, space::BumpPointerSpace::kAlignment);
-      ret = bump_pointer_space_->AllocNonvirtual(alloc_size);
-      if (LIKELY(ret != nullptr)) {
-        *bytes_allocated = alloc_size;
-        *usable_size = alloc_size;
-        *bytes_tl_bulk_allocated = alloc_size;
-      }
+      ret = bump_pointer_space_->AllocNonvirtual(alloc_size, bytes_allocated, usable_size,
+                                                 bytes_tl_bulk_allocated);
       break;
     }
     case kAllocatorTypeRosAlloc: {
@@ -330,12 +332,11 @@ inline mirror::Object* Heap::TryToAllocate(Thread* self,
     case kAllocatorTypeTLAB: {
       DCHECK_ALIGNED(alloc_size, space::BumpPointerSpace::kAlignment);
       if (UNLIKELY(self->TlabSize() < alloc_size)) {
-        size_t tail = bump_pointer_space_->GetHeaderSize();
         const bool bypass_tlab = tlab_alloc_threshold_ < alloc_size;
-        size_t new_tlab_size = alloc_size + (bypass_tlab ? tail : tlab_size_);
+        size_t new_tlab_size = alloc_size + (bypass_tlab ? 0u : tlab_size_);
         if (UNLIKELY(GetBytesAllocated() + new_tlab_size > growth_limit_)) {
           size_t max_bytes_available = GetFreeMemoryUntilOOME();
-          if (max_bytes_available >= alloc_size + tail) {
+          if (max_bytes_available >= alloc_size) {
             new_tlab_size = max_bytes_available;
           } else {
             return nullptr;
@@ -346,13 +347,11 @@ inline mirror::Object* Heap::TryToAllocate(Thread* self,
         }
         // Try to allocate without TLAB.
         if (bypass_tlab) {
-          ret = bump_pointer_space_->AllocWithoutTlab(alloc_size);
+          ret = bump_pointer_space_->AllocNonvirtual(alloc_size, bytes_allocated,
+                                                     usable_size, bytes_tl_bulk_allocated);
           if (ret == nullptr) {
             return nullptr;
           }
-          *bytes_tl_bulk_allocated = new_tlab_size;
-          *bytes_allocated = alloc_size;
-          *usable_size = alloc_size;
           break;
         }
         // Try allocating a new thread local buffer, if the allocaiton fails the space must be
@@ -361,10 +360,10 @@ inline mirror::Object* Heap::TryToAllocate(Thread* self,
           // Retry the allocation to reuse the left space at the end of bump pointer space.
           // This happen only when kGrow is true in order to avoid performance impact.
           size_t max_contiguous_bytes = bump_pointer_space_->GetMaxContiguousBytes();
-          if (max_contiguous_bytes < alloc_size || max_contiguous_bytes < tail) {
+          if (max_contiguous_bytes < alloc_size) {
             return nullptr;
           }
-          const size_t adjusted_tlab_size = max_contiguous_bytes - tail;
+          const size_t adjusted_tlab_size = max_contiguous_bytes;
           DCHECK_LT(adjusted_tlab_size, new_tlab_size);
           if (kGrow && adjusted_tlab_size > alloc_size) {
             if (!bump_pointer_space_->AllocNewTlab(self, adjusted_tlab_size)) {

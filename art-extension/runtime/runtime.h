@@ -704,6 +704,10 @@ class Runtime {
     return enable_gcview_profile_;
   }
 
+  // Returns if the code can be deoptimized. Code may be compiled with some
+  // optimization that makes it impossible to deoptimize.
+  bool IsDeoptimizeable(uintptr_t code) const SHARED_REQUIRES(Locks::mutator_lock_);
+
  private:
   ProfilersMap& GetProfilersUnlocked() {
     return profiles_;

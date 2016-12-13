@@ -1717,7 +1717,7 @@ void Heap::RecordFree(uint64_t freed_objects, int64_t freed_bytes) {
   // Use signed comparison since freed bytes can be negative when background compaction foreground
   // transitions occurs. This is caused by the moving objects from a bump pointer space to a
   // free list backed space typically increasing memory footprint due to padding and binning.
-  // DCHECK_LE(freed_bytes, static_cast<int64_t>(num_bytes_allocated_.LoadRelaxed()));
+  DCHECK_LE(freed_bytes, static_cast<int64_t>(num_bytes_allocated_.LoadRelaxed()));
   // Note: This relies on 2s complement for handling negative freed_bytes.
   // num_bytes_allocated_.FetchAndSubSequentiallyConsistent(static_cast<ssize_t>(freed_bytes));
   uint64_t bytes_allocated = GetBytesAllocated();
@@ -1948,7 +1948,10 @@ mirror::Object* Heap::AllocateInternalWithGc(Thread* self,
       }
       case kAllocatorTypeNonMoving: {
         // Try to transition the heap if the allocation failure was due to the space being full.
-        if (!IsOutOfMemoryOnAllocation<false>(allocator, alloc_size)) {
+        // The transition does not work if we have no separate non-moving space.
+        if (!IsOutOfMemoryOnAllocation<false>(allocator, alloc_size) &&
+            collector_type_ != kCollectorTypeGSS &&
+            collector_type_ != kCollectorTypeGenCopying) {
           // If we aren't out of memory then the OOM was probably from the non moving space being
           // full. Attempt to disable compaction and turn the main space into a non moving space.
           DisableMovingGc();
@@ -3343,7 +3346,10 @@ void Heap::PushOnAllocationStackWithInternalGC(Thread* self, mirror::Object** ob
     // to heap verification requiring that roots are live (either in the live bitmap or in the
     // allocation stack).
     CHECK(allocation_stack_->AtomicPushBackIgnoreGrowthLimit(*obj));
-    CollectGarbageInternal(collector::kGcTypeSticky, kGcCauseForAlloc, false);
+    CollectGarbageInternal(
+        collector_type_ == kCollectorTypeGenCopying ?
+                           collector::kGcTypeFull :
+                           collector::kGcTypeSticky, kGcCauseForAlloc, false);
   } while (!allocation_stack_->AtomicPushBack(*obj));
 }
 
@@ -3362,7 +3368,10 @@ void Heap::PushOnThreadLocalAllocationStackWithInternalGC(Thread* self, mirror::
     // allocation stack).
     CHECK(allocation_stack_->AtomicPushBackIgnoreGrowthLimit(*obj));
     // Push into the reserve allocation stack.
-    CollectGarbageInternal(collector::kGcTypeSticky, kGcCauseForAlloc, false);
+    CollectGarbageInternal(
+        collector_type_ == kCollectorTypeGenCopying ?
+                           collector::kGcTypeFull :
+                           collector::kGcTypeSticky, kGcCauseForAlloc, false);
   }
   self->SetThreadLocalAllocationStack(start_address, end_address);
   // Retry on the new thread-local allocation stack.

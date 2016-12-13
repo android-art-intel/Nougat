@@ -863,10 +863,10 @@ inline void Class::SetSlowPath(bool enabled) {
 }
 
 inline void Class::InitializeClassVisitor::operator()(
-    mirror::Object* obj, size_t usable_size) const {
+    mirror::Object** obj, size_t usable_size) const {
   DCHECK_LE(class_size_, usable_size);
   // Avoid AsClass as object is not yet in live bitmap or allocation stack.
-  mirror::Class* klass = down_cast<mirror::Class*>(obj);
+  mirror::Class* klass = down_cast<mirror::Class*>(*obj);
   // DCHECK(klass->IsClass());
   klass->SetClassSize(class_size_);
   klass->SetPrimitiveType(Primitive::kPrimNot);  // Default to not being primitive.

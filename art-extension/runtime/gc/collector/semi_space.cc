@@ -753,7 +753,8 @@ class MarkStackCopyTask : public Task {
   size_t objects_updated_;
   size_t objects_processed_;
 
-  virtual void Finalize() {
+  virtual void Finalize()
+      SHARED_REQUIRES(Locks::mutator_lock_) {
     // Revoke Thread local buffers for copying. even for !kUseTLCB.
     // Because ros use thread local runs by default.
     Thread* self = Thread::Current();
@@ -1384,7 +1385,7 @@ void SemiSpace::ProcessMarkStackParallel(size_t thread_count) {
         StackReference<mirror::Object>* mark_stack = rms->GetMarkStack();
         DCHECK(mark_stack != nullptr);
         for (size_t idx = 0; idx < stack_size;) {
-          size_t chunk_size = std::min(stack_size,
+          size_t chunk_size = std::min(stack_size - idx,
                                        static_cast<size_t>(MarkStackCopyTask::kMaxSize));
           CHECK_GT(chunk_size, 0U);
           auto* task = new MarkStackCopyTask(thread_pool, this, chunk_size, mark_stack + idx);

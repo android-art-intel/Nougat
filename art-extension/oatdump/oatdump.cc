@@ -2207,6 +2207,11 @@ static int DumpImage(gc::space::ImageSpace* image_space,
 }
 
 static int DumpImages(Runtime* runtime, OatDumperOptions* options, std::ostream* os) {
+  Thread* self = Thread::Current();
+
+  // Need well-known-classes.
+  WellKnownClasses::Init(self->GetJniEnv());
+
   // Dumping the image, no explicit class loader.
   ScopedNullHandle<mirror::ClassLoader> null_class_loader;
   options->class_loader_ = &null_class_loader;

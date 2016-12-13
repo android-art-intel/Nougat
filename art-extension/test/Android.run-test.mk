@@ -501,10 +501,14 @@ TEST_ART_BROKEN_OPTIMIZING_MIPS64_RUN_TESTS :=
 
 # Tests that should fail when the optimizing compiler compiles them non-debuggable.
 TEST_ART_BROKEN_OPTIMIZING_NONDEBUGGABLE_RUN_TESTS := \
-  454-get-vreg \
-  457-regs \
   004-ReferenceMap \
   099-vmdebug \
+  454-get-vreg \
+  457-regs \
+  545-tracing-and-jit \
+  570-checker-osr \
+  602-deoptimizeable \
+  802-deoptimization
 
 ifneq (,$(filter optimizing,$(COMPILER_TYPES)))
   ART_TEST_KNOWN_BROKEN += $(call all-run-test-names,$(TARGET_TYPES),$(RUN_TYPES),$(PREBUILD_TYPES), \

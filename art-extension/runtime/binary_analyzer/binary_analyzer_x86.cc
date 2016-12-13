@@ -173,13 +173,14 @@ MachineBlock* CFGraph::GetCorrectBB(MachineBlock* bblock) {
 bool CFGraph::IsVisited(const uint8_t* addr,
                         MachineBlock* prev_bblock,
                         MachineBlock* succ_bblock,
-                        std::vector<BackLogDs*>* backlog) {
+                        std::vector<BackLogDs*>* backlog,
+                        const bool is_function_start) {
   for (const auto current_bb : visited_bblock_list_) {
     if (!current_bb->IsDummy()) {
       const uint8_t* start = current_bb->GetStartAddr();
       const uint8_t* end = current_bb->GetEndAddr();
-      // Recognize it as a cycle only if a back-branch found.
-      if (addr <= prev_bblock->GetEndAddr()) {
+      // Recognize it as a cycle only if a back-branch found and it was a jmp, not call.
+      if (addr <= prev_bblock->GetEndAddr() && !is_function_start) {
         this->SetHasCycles();
       }
 
@@ -218,7 +219,7 @@ bool CFGraph::IsVisited(const uint8_t* addr,
           if (curr_instr == addr) {
             // Change the last instruction.
             bb_to_be_split->SetEndAddr(prev_instr);
-            MachineBlock* new_bb = CreateBBlock(nullptr);
+            MachineBlock* new_bb = CreateBBlock(nullptr, nullptr);
             const auto& succ_list = bb_to_be_split->GetSuccBBlockList();
             bb_to_be_split->ClearSuccBBlockList();
             bb_to_be_split->AddSuccBBlock(new_bb);
@@ -297,9 +298,10 @@ bool CFGraph::IsVisitedForBacklog(BackLogDs* entry, std::vector<BackLogDs*>* bac
   if (entry != nullptr) {
     MachineBlock* prev_bb = entry->pred_bb;
     const uint8_t* addr = entry->ptr;
+    const bool is_function_start = entry->is_function_start;
 
     if (prev_bb != nullptr) {
-      return IsVisited(addr, prev_bb, entry->succ_bb, backlog);
+      return IsVisited(addr, prev_bb, entry->succ_bb, backlog, is_function_start);
     }
   }
   return false;
@@ -330,7 +332,8 @@ void CFGHelper(CFGraph* cfg,
                std::vector<BackLogDs*>* backlog,
                uint32_t depth,
                MachineBlock* dummy_end,
-               Disassembler* disasm) {
+               Disassembler* disasm,
+               CallGraph* call_graph) {
   ptrdiff_t len = 0;
   int32_t is_bb_end = kNone;
   const uint8_t* target = nullptr;
@@ -342,6 +345,7 @@ void CFGHelper(CFGraph* cfg,
     case kUnconditionalBranch: {
       // Push the jmp target to backlog.
       BackLogDs* uncond_jmp = new BackLogDs();
+      uncond_jmp->function_start = curr_bblock->GetFunctionStartAddr();
       uncond_jmp->pred_bb = curr_bblock;
       if (depth > 0) {
         uncond_jmp->succ_bb = dummy_end;
@@ -349,6 +353,7 @@ void CFGHelper(CFGraph* cfg,
         uncond_jmp->succ_bb = nullptr;
       }
       uncond_jmp->ptr = target;
+      uncond_jmp->is_function_start = false;
       uncond_jmp->call_depth = 0;
       backlog->push_back(uncond_jmp);
       // Add the current BB to CFG.
@@ -359,6 +364,7 @@ void CFGHelper(CFGraph* cfg,
       // Push the conditional (if) jmp target to backlog.
       BackLogDs* cond_if_jmp = new BackLogDs();
       cond_if_jmp->pred_bb = curr_bblock;
+      cond_if_jmp->function_start = curr_bblock->GetFunctionStartAddr();
       if (depth > 0) {
         cond_if_jmp->succ_bb = dummy_end;
       } else {
@@ -366,10 +372,13 @@ void CFGHelper(CFGraph* cfg,
       }
       cond_if_jmp->ptr = target;
       cond_if_jmp->call_depth = 0;
+      cond_if_jmp->is_function_start = false;
       backlog->push_back(cond_if_jmp);
       // Push the else (subsequent instruction) to the backlog.
       BackLogDs* cond_else_jmp = new BackLogDs();
+      cond_else_jmp->is_function_start = false;
       cond_else_jmp->pred_bb = curr_bblock;
+      cond_else_jmp->function_start = curr_bblock->GetFunctionStartAddr();
       if (depth > 0) {
         cond_else_jmp->succ_bb = dummy_end;
       } else {
@@ -385,25 +394,29 @@ void CFGHelper(CFGraph* cfg,
     case kCall: {
       // Add the current Basic Block to the CFG.
       cfg->AddTuple(curr_bblock, start_ptr, reinterpret_cast<const uint8_t*>(ptr));
-      MachineBlock* start_bb = cfg->CreateBBlock(curr_bblock);
-      MachineBlock* end_bb = cfg->CreateBBlock(nullptr);
+      MachineBlock* start_bb = cfg->CreateBBlock(curr_bblock, curr_bblock->GetFunctionStartAddr());
+      MachineBlock* end_bb = cfg->CreateBBlock(nullptr, curr_bblock->GetFunctionStartAddr());
       start_bb->SetDummy();
       end_bb->SetDummy();
       BackLogDs* call_entry = new BackLogDs();
       call_entry->pred_bb = start_bb;
       call_entry->ptr = target;
+      call_entry->function_start = target;
       call_entry->succ_bb = end_bb;
+      call_entry->is_function_start = true;
       call_entry->call_depth = depth + 1;
       if (call_entry->call_depth > cfg->GetCallDepth()) {
         cfg->SetCallDepth(call_entry->call_depth);
       }
       backlog->push_back(call_entry);
-      MachineBlock* bb_after_call = cfg->CreateBBlock(end_bb);
+      MachineBlock* bb_after_call = cfg->CreateBBlock(end_bb, curr_bblock->GetFunctionStartAddr());
       curr_bblock = bb_after_call;
       is_bb_end = kNone;
       start_ptr = ptr + len;
       cfg->AddTuple(start_bb, nullptr, nullptr);
       cfg->AddTuple(end_bb, nullptr, nullptr);
+
+      call_graph->AddCall(curr_bblock->GetFunctionStartAddr(), target);
       break;
     }
     case kReturn: {
@@ -461,15 +474,16 @@ void CFGHelper(CFGraph* cfg,
  */
 AnalysisResult AnalyzeCFG(const uint8_t* ptr, const std::string& method_name) {
   CFGraph cfg(method_name);
+  auto call_graph = CallGraph::CreateNew();
   Disassembler disassembler(Runtime::Current()->GetInstructionSet());
   MachineBlock* predecessor_bb = nullptr;
-  MachineBlock* start_bb = cfg.CreateBBlock(predecessor_bb);
+  MachineBlock* start_bb = cfg.CreateBBlock(predecessor_bb, nullptr);
   MachineBlock* curr_bb = start_bb;
   cfg.AddStartBBlock(start_bb);
   MachineBlock* dummy_end = nullptr;
   uint32_t depth = 0;
   std::vector<BackLogDs*> backlog;
-  CFGHelper(&cfg, ptr, curr_bb, &backlog, depth, dummy_end, &disassembler);
+  CFGHelper(&cfg, ptr, curr_bb, &backlog, depth, dummy_end, &disassembler, call_graph.get());
   do {
     BackLogDs* entry = nullptr;
     if (!backlog.empty()) {
@@ -478,10 +492,10 @@ AnalysisResult AnalyzeCFG(const uint8_t* ptr, const std::string& method_name) {
       if (!cfg.IsVisitedForBacklog(entry, &backlog)) {
         ptr = entry->ptr;
         predecessor_bb  = entry->pred_bb;
-        curr_bb = cfg.CreateBBlock(predecessor_bb);
+        curr_bb = cfg.CreateBBlock(predecessor_bb, entry->function_start);
         dummy_end = entry->succ_bb;
         depth = entry->call_depth;
-        CFGHelper(&cfg, ptr, curr_bb, &backlog, depth, dummy_end, &disassembler);
+        CFGHelper(&cfg, ptr, curr_bb, &backlog, depth, dummy_end, &disassembler, call_graph.get());
       }
     }
     delete entry;
@@ -492,6 +506,9 @@ AnalysisResult AnalyzeCFG(const uint8_t* ptr, const std::string& method_name) {
       return cfg.GetAnalysisState();
     }
   } while ((!backlog.empty()));
+  if (CallGraph::HasCycles(std::move(call_graph))) {
+    return AnalysisResult::kHasCycles;
+  }
   return cfg.GetAnalysisState();
 }
 
@@ -547,7 +564,8 @@ std::ostringstream MachineBlock::Print(bool is_dot) {
     }
   } else {
     os << "   Basic Block Id : " << id_
-        << "\n BB -No. of instructions " << GetInstrCnt()
+       << "\n Call entry: 0x" << std::hex << size_t(function_start_addr_)
+       << "\n BB -No. of instructions " << GetInstrCnt()
         << "\n    List of predecessor BBs : ";
     for (auto it : pred_bblock_) {
       os << it->GetId() << "   ";
@@ -606,6 +624,9 @@ void MachineBlock::AddPredBBlock(MachineBlock* bblock) {
   if (it == pred_bblock_.end()) {
     pred_bblock_.push_back(bblock);
   }
+  if (function_start_addr_ == nullptr && bblock != nullptr) {
+    function_start_addr_ = bblock->GetFunctionStartAddr();
+  }
 }
 
 void MachineBlock::AddSuccBBlock(MachineBlock* bblock) {
@@ -659,8 +680,8 @@ void CFGraph::IncreaseInstructionCnt(uint32_t amount) {
   }
 }
 
-MachineBlock* CFGraph::CreateBBlock(MachineBlock* predecessor_bb) {
-  MachineBlock* new_bb = new MachineBlock(predecessor_bb);
+MachineBlock* CFGraph::CreateBBlock(MachineBlock* predecessor_bb, const uint8_t* function_start) {
+  MachineBlock* new_bb = new MachineBlock(predecessor_bb, function_start);
   new_bb->SetId(GetBBlockCnt());
   new_bb->SetStartAddr(nullptr);
   new_bb->SetEndAddr(nullptr);
@@ -674,6 +695,53 @@ void CFGraph::AddTuple(MachineBlock* bblock, const uint8_t* start, const uint8_t
   bblock->SetEndAddr(end);
   visited_bblock_list_.push_back(bblock);
   IncreaseInstructionCnt(bblock->GetInstrCnt());
+}
+
+bool CallGraph::HasCycles(std::unique_ptr<CallGraph> graph) {
+  if (graph->root == nullptr) {
+    return false;
+  }
+  return graph->SubgraphCheckCycles(graph->root);
+}
+
+void CallGraph::AddCall(const uint8_t* caller, const uint8_t* callee) {
+  auto caller_entry = GetOrAddCallEntry(caller);
+  auto callee_entry = GetOrAddCallEntry(callee);
+  if (root == nullptr) {
+    root = caller_entry;
+  }
+  caller_entry->AddCallee(callee_entry);
+}
+
+bool CallGraph::SubgraphCheckCycles(CallEntry* node) {
+  // The classic algorithm for checking a directed graph for the presence of cycles in it.
+  if (node->state == NodeState::kAlreadyChecked) {
+    return false;
+  }
+  if (node->state == NodeState::kInCurrentPath) {
+    return true;
+  }
+
+  node->state = NodeState::kInCurrentPath;
+  for (auto& child : node->callees) {
+    if (SubgraphCheckCycles(child)) {
+      return true;
+    }
+  }
+
+  node->state = NodeState::kAlreadyChecked;
+  return false;
+}
+
+CallGraph::CallEntry* CallGraph::GetOrAddCallEntry(const uint8_t* entry_start_address) {
+  auto it = entries.find(entry_start_address);
+  if (it != entries.end()) {
+    return it->second.get();
+  }
+  auto new_entry = std::unique_ptr<CallEntry>(new CallEntry(entry_start_address));
+  auto new_entry_ptr = new_entry.get();
+  entries[entry_start_address] = std::move(new_entry);
+  return new_entry_ptr;
 }
 
 }  // namespace x86

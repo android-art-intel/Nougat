@@ -112,7 +112,6 @@ enum ThreadFlag {
 enum class StackedShadowFrameType {
   kShadowFrameUnderConstruction,
   kDeoptimizationShadowFrame,
-  kSingleFrameDeoptimizationShadowFrame
 };
 
 // This should match RosAlloc::kNumThreadLocalSizeBrackets.
@@ -990,6 +989,9 @@ class Thread {
   bool HasTlab() const;
   uint8_t* GetTlabStart() {
     return tlsPtr_.thread_local_start;
+  }
+  uint8_t* GetTlabEnd() {
+    return tlsPtr_.thread_local_end;
   }
   uint8_t* GetTlabPos() {
     return tlsPtr_.thread_local_pos;
