@@ -1,0 +1,158 @@
+#!/bin/bash
+#
+# Copyright (C) 2015 Intel Corporation.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+#
+# roboscript-2016.04.20
+#
+
+BASE_DIR=$(cd $(dirname $0); pwd)
+SCREENSHOTS_DIR=${SCREENSHOTS_DIR:-"$(pwd)"}
+TEST_DATA=${TEST_DATA:-/sdcard/test_data}
+
+fail() {
+    echo "$@"
+    exit 1
+}
+
+log() {
+    echo "$@"
+}
+
+get_includes() {
+    local s=$1
+    local d=$(cd $(dirname $s); pwd)
+    local n=$( basename "$s" )
+    local p=${files["$d/$n"]}
+    [[ -n "$p" ]] && return
+    files[$d/$n]="$d/$n"
+    incs=$( cat "$s" | grep "#include\s*" | sed -e "s/#include\s*//" -e "s/\"//g" | tr -d '\r' )
+    pushd $d > /dev/null
+    for inc in $incs
+    do
+        get_includes "$inc"
+    done
+    popd > /dev/null
+}
+
+check_device() {
+    local online_device_count=$(adb devices | grep -v devices | grep -c device)
+    if (( online_device_count < 1 ))
+    then
+        fail "No devices connected through adb!"
+    elif test -n "$ANDROID_SERIAL"
+    then
+        vlog "Using device: $ANDROID_SERIAL"
+        adb shell echo OK | grep -q OK || fail "Cannot adb device: $ANDROID_SERIAL"
+    elif (( online_device_count > 1 ))
+    then
+        log "Multiple devices connected through adb! Do export ANDROID_SERIAL=<device-serial> before run."
+        adb devices
+        exit 1
+    else
+        local device=`adb devices | grep -v devices | grep device | awk '{print $1}'`
+        log "Using only avaiable device: $device"
+        adb shell echo OK | grep -q OK || fail "Cannot adb to the only avaiable device: $device"
+    fi
+}
+
+logSource=${LOG_SOURCE:-false}
+takeScreenshots=${TAKE_SCREENSHOTS:-false}
+verbose=${SCENARIO_VERBOSE:-false}
+dumpParameters=${DUMP_PARAMETERS:-false}
+dumpOnError=${DUMP_ON_ERROR:-false}
+script=
+inline=
+
+for par in "$@"
+do
+    case $par in
+      *=*) export "$par" ;;
+      "--log-source") logSource=true ;;
+      "-l") logSource=true ;;
+      "--dump-params") dumpParameters=true ;;
+      "-p") dumpParameters=true ;;
+      "--take-screenshots") takeScreenshots=true ;;
+      "-s") takeScreenshots=true ;;
+      "--verbose") takeScreenshots=true ;;
+      "-v") verbose=true ;;
+      "--dump-on-error") dumpOnError=true ;;
+      "-e") dumpOnError=true ;;
+      "--inline" | "-i")
+        shift
+        echo "inline script: $1"
+        inline=$(echo $1 | sed -e "s/ /_SP_/g" -e "s/;/_SEMICOLON_/g" -e "s/,/_COMMA_/g" -e "s/</_LOWER_/g" -e "s/>/_GRATER_/g" -e "s/|/_OR_/g" -e "s/(/_LPAR_/g" -e "s/)/_RPAR_/g" -e "s/'/_Q_/g" -e "s/\"/_QQ_/g")
+        echo "inline escape: $inline"
+        script_args="-e inline $inline"
+        shift
+        break
+        ;;
+      *)
+        script=$1
+        echo "script: $script"
+        script_name=$(basename "$script")
+        script_args="-e script ${TEST_DATA}/$script_name"
+        shift
+        break
+        ;;
+    esac
+    shift
+done
+
+declare -A files
+
+[[ -z "$script" && -z "$inline" ]] && { echo "Script not specified"; exit 1; }
+[[ -z "$script" || -f "$script" ]] || { echo "Script not found: $script"; exit 1; }
+
+[[ -n "$script" ]] && get_includes "$script"
+
+for file in "${!files[@]}"
+do
+    echo "Installing $file to ${TEST_DATA}..."
+    adb push "$file" ${TEST_DATA}/ | grep -v '^\[ '
+done
+
+if [[ -z "$ROBOSCRIPT_APK" ]]
+then
+      if [[ -f "$BASE_DIR/RoboScript.apk" ]]; then ROBOSCRIPT_APK="$BASE_DIR/RoboScript.apk"
+    elif [[ -f "$BASE_DIR/lib/RoboScript.apk" ]]; then ROBOSCRIPT_APK="$BASE_DIR/lib/RoboScript.apk"
+    elif [[ -f "$BASE_DIR/../RoboScript.apk" ]]; then ROBOSCRIPT_APK="$BASE_DIR/../RoboScript.apk"
+    elif [[ -f "$BASE_DIR/../lib/RoboScript.apk" ]]; then ROBOSCRIPT_APK="$BASE_DIR/../lib/RoboScript.apk"
+    else
+        fail "The RoboScript.apk not found!"
+    fi
+fi
+
+[[ -f "$ROBOSCRIPT_APK" ]] || fail "The roboscript APK does not exist: $ROBOSCRIPT_APK!"
+
+echo "Installing roboscript APK: $ROBOSCRIPT_APK..."
+adb push "$ROBOSCRIPT_APK" ${TEST_DATA}/RoboScript.apk | grep -v '^\[ '
+
+args="-e dumpOnError $dumpOnError -e logSource $logSource -e takeScreenshots $takeScreenshots -e screenshotRoot $TEST_DATA/screenshots -e verbose $verbose -e dumpParameters $dumpParameters $@ $script_args -c com.intel.robo.TestScript"
+
+echo "Current content of $TEST_DATA..."
+adb shell "ls -la ${TEST_DATA}/"
+
+echo "Cleaning $TEST_DATA/screenshots..."
+adb shell "rm -r $TEST_DATA/screenshots" 2>&1 > /dev/null
+
+echo "Running automator with args: $args..."
+adb shell "uiautomator runtest ${TEST_DATA}/RoboScript.apk $args" 2>&1
+
+if [[ "$takeScreenshots" == true ]]
+then
+    echo "Pulling screenshots from $TEST_DATA/screenshots to $SCREENSHOTS_DIR..."
+    mkdir -p "$SCREENSHOTS_DIR" && adb pull "$TEST_DATA/screenshots" "$SCREENSHOTS_DIR"
+fi
