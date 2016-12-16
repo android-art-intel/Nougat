@@ -1,0 +1,73 @@
+<HTML>
+<HEAD>
+<meta http-equiv='content-type' content='text/html; charset=UTF-8'>
+
+<h2>Help page</h2>
+For evaluation purposes you need only two arguments: <b>builds</b> and <b>evaluationmode</b>.<br>
+Two additional arguments with &quot;not,&quot; at the beginning allow to hide evaluated rows - <b>benchid</b> and <b>workloadid</b><br>
+
+<br>
+Example - list of degradations on WW47 with filtered Quadrant benchmark and Antutu 5.6 2D graphics workload:<br>
+compare.pl builds=7262b,7370,7261b,7371,7260b,7372,7257b,7375_7259b,7373,7258b,7374,7266b,7377,7264b,7382,7265b,7376,7263b,7381 benchid=not,4,51..66 workloadid=not,208 evaluationmode max droplimit=0.5
+<br>
+<p>
+<h3>List of all arguments:</h3>
+<ul>
+    <li><b>builds</b>=7262b,7370e,7261b,7371,7260b,7372_7257b,7375,7259b,7373,7258b,7374,7266b,7377,7264b,7382,7265b,7376,7263b,7381
+	<ul><li>Mandatory argument - list of build ids. By default first build considered as base
+	<li>Splitters:
+	    <ul><li><b>,</b> - standard horisontal separator
+	    <li><b>_</b> - Vertical separator
+	    </ul>
+	</li>
+	<li>Modificators:
+	    <ul><li><b>b</b> - mark build as <b>B</b>ase
+	    <!--li><b>e</b> - <b>E</b>xtended output - add links for particular build to weekly results and details pages<--!>
+	    <li><b>l</b> - use <b>L</b>atest build of the same configuration instead of which was given.
+	    <li><b>h</b> - <b>H</b>ide this build.
+	    <li><b>p</b> - Show all <b>P</b>atches based on given build.
+	    </ul>
+	</li>
+	</ul>
+
+    <li><b>benchid</b>=not,1
+	<ul><li>Optional argument -  list on benchmark ids
+	<li> <b>..</b> - sequence of ids. Ex: From 51 to 63 - 51..63; 
+	<li>Modificators:
+	<ul><li>not, - as a first item in list to inverse argument to filter some benchmarks</ul>
+	</ul>
+    <li><b>benchorder</b>=1,6,3
+	<ul><li>Optional argument -  list on benchmark ids to sort output. example: benchorder=1,11,5,4,41,7,12,10,49,50,16,40&benchid=1,11,5,4,41,7,12,10,49,50,16,40</ul>
+    <li><b>workloadid</b>=not,16
+	<ul><li>Optional argument -  list on workload ids
+	<li> <b>..</b> - sequence of ids. Ex: From 251 to 263 - 251..263;
+	<li>Modificators:
+	    <ul><li>not, - as a first item in list to inverse argument meaning to filter some benchmarks</ul>
+	</ul>
+    <li><b>main</b>
+	<ul><li>Display only main workloads</ul>
+    <li><b>showids</b>
+	<ul><li>Displays benchmarks and workloads <b>ids</b></ul>
+    <li><b>hidenonbasevariability</b>
+	<ul><li>Hide variability columns for non-base builds</ul>
+    <li><b>showdegradationsonly</b>
+	<ul><li>Hide rows without degradations</ul>
+    <li><b>usemedianvariability</b>
+	<ul><li>To use variability for last three builds instead of variability of base build: If score dropped more than both values then it will be marked as red, in case of one excess  as yellow</ul>
+    <li><b>evaluationmode</b>
+	<ul><li>This is a combination of last three argument: hidenonbasevariability& showdegradationsonly & usemedianvariability</ul>
+    <li><b>droplimit</b>
+	<ul><li>Show only degradations which are larger than this limit</ul>
+    <li><b>hidevariability</b>
+	<ul><li>Do not display variability columns</ul>
+    <li><b>JIRA</b>
+	<ul><li>Produces Wiki's format output for JIRA bugs</ul>
+    <li><b>help</b>
+	<ul><li>Show this page</ul>
+    <li><b>max</b>
+	<ul><li>Add column with maximum score among displayed builds</ul>
+
+</ul>
+</p>
+
+<hr>
