@@ -46,7 +46,7 @@ To start using ART-Extension one needs to follow the steps:
 
 3. Build Android image using AOSP for your device/emulator:
    * See instructions at https://source.android.com/source/ (your device must be supported by AOSP build or use x86 emulator).
-   * To start build with ART-Extension one needs to use VENDOR_ART_PATH=<path to art-extension> option in make, emulator build example: "make dist VENDOR_ART_PATH=art-extension droid"
+   * To start build with ART-Extension one needs to use VENDOR_ART_PATH=<path to art-extension> option in make, emulator build example: "makeÂ distÂ VENDOR_ART_PATH=art-extension droid"
    * ART-Extension was tested to build and boot to GUI on at least x86 emulator, to build ARM emulator one should add "WITH_DEXPREOPT=false" to the build options, besides testing showed ARM emulator was not able to boot to GUI.
 
 4. Flash your device or start emulator (use AOSP instructions), test it, and then try.
@@ -55,5 +55,5 @@ To start using ART-Extension one needs to follow the steps:
 
 Apache License Version 2.0
 
-See LICENSE file for details
+See LICENSE file for details.
 
